@@ -1,12 +1,14 @@
 package controllers
 
-import play.api._
-import play.api.mvc._
+import play.api.mvc.{Action, Controller}
+import play.modules.reactivemongo.MongoController
 
-object Application extends Controller {
+import scala.concurrent.Future
 
-  def index = Action {
-    Ok(views.html.index("Your new application is ready."))
+object Application extends Controller with MongoController {
+
+  def root = Action.async {
+    Future.successful(NotFound("The requested resource could not be found."))
   }
 
 }
