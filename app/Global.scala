@@ -1,17 +1,18 @@
-package global
-
 import json.JSON
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results._
-import play.api.mvc.{RequestHeader, Result}
+import play.api.mvc.{RequestHeader, Result, WithFilters}
 import play.api.{Application, GlobalSettings, Logger}
+import play.filters.headers.SecurityHeadersFilter
 
 import scala.concurrent.Future
 
 /**
  * Created by kasonchan on 5/20/15.
  */
-object Global extends GlobalSettings with JSON {
+object Global extends WithFilters(SecurityHeadersFilter())
+with GlobalSettings
+with JSON {
 
   override def onStart(app: Application) {
     Logger.info("Application has started")
@@ -27,9 +28,8 @@ object Global extends GlobalSettings with JSON {
    * @return Future[Result]
    */
   override def onHandlerNotFound(request: RequestHeader): Future[Result] = {
-
     val response: JsValue = Json.obj("message" -> "Not found")
-
+    Logger.info(response.toString())
     Future.successful(NotFound(prettify(response)))
   }
 
@@ -40,9 +40,8 @@ object Global extends GlobalSettings with JSON {
    * @return Future[Result]
    */
   override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {
-
     val response: JsValue = Json.obj("message" -> "Bad request")
-
+    Logger.info(response.toString())
     Future.successful(BadRequest(prettify(response)))
   }
 
@@ -53,9 +52,8 @@ object Global extends GlobalSettings with JSON {
    * @return Future[Result]
    */
   override def onError(request: RequestHeader, ex: Throwable): Future[Result] = {
-
     val response: JsValue = Json.obj("message" -> "Oops")
-
+    Logger.error(response.toString())
     Future.successful(InternalServerError(prettify(response)))
   }
 
