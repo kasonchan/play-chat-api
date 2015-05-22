@@ -1,7 +1,8 @@
 package controllers
 
-import play.api.libs.json.{JsArray, JsObject, Json}
-import play.api.mvc.{Action, Controller}
+import json.JSON
+import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.mvc.{Action, AnyContent, Controller}
 import play.modules.reactivemongo.MongoController
 import play.modules.reactivemongo.json.collection.JSONCollection
 import reactivemongo.api.Cursor
@@ -12,27 +13,37 @@ import scala.concurrent.Future
 /**
  * Created by kasonchan on 5/20/15.
  */
-object Users extends Controller with MongoController {
+object Users extends Controller with MongoController with JSON {
 
-  def collection: JSONCollection = db.collection[JSONCollection]("users")
+  def usersCollection: JSONCollection = db.collection[JSONCollection]("users")
 
-  def find(name: String) = Action.async {
-    // Do quert
-    val cursor: Cursor[JsObject] = collection.find(Json.obj("name" -> name)).
-      // Perform the query and get a cursor of JsObject
-      cursor[JsObject]
+  /**
+   * Find
+   * Find the user by name
+   * @param name String
+   * @return Action[AnyContent]
+   */
+  def find(name: String): Action[AnyContent] = Action.async {
+    // Perform the query and get a cursor of JsObject
+    val cursor: Cursor[JsObject] = usersCollection
+      .find(Json.obj("name" -> name))
+      .cursor[JsObject]
 
-    // Gather all the JsObjects in a list
-    val futureUsersList: Future[List[JsObject]] = cursor.collect[List]()
+    // Gather all the JsObjects in a Seq
+    val futureUsersList: Future[Seq[JsObject]] = cursor.collect[Seq]()
 
-    // Transform the list into a JsArray
-    val futureUsersJsonArray: Future[JsArray] = futureUsersList.map { users =>
-      Json.arr(users)
-    }
-
-    // Replay
-    futureUsersJsonArray.map { users =>
-      Ok(users)
+    // If the Seq is empty, return not found
+    // Otherwise, return the Seq in Json format
+    futureUsersList.map { users =>
+      if (users.isEmpty) {
+        val response: JsValue = Json.obj("message" -> "Not found")
+        NotFound(prettify(response))
+      }
+      else {
+        // Ok(users.mkString("[", ",", "]"))
+        val usersInJson: JsValue = Json.toJson(users)
+        Ok(prettify(usersInJson))
+      }
     }
   }
 

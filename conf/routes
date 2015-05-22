@@ -2,8 +2,10 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-# Home page
-GET        /api/v0.1/users              controllers.Application.root
+# Root
+GET        /api/v0.1/                   controllers.Application.root
+
+# Find
 GET        /api/v0.1/users/:name        controllers.Users.find(name)
 
 # Map static resources from the /public folder to the /assets URL path

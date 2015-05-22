@@ -1,14 +1,22 @@
 package controllers
 
-import play.api.mvc.{Action, Controller}
+import json.JSON
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, AnyContent, Controller}
 import play.modules.reactivemongo.MongoController
 
 import scala.concurrent.Future
 
-object Application extends Controller with MongoController {
+object Application extends Controller with MongoController with JSON {
 
-  def root = Action.async {
-    Future.successful(NotFound("The requested resource could not be found."))
+  /**
+   * Root
+   * Return all api links
+   * @return  Action[AnyContent]
+   */
+  def root: Action[AnyContent] = Action.async {
+    val response: JsValue = Json.obj("user_url" -> "/api/v0.1/users/{user}")
+    Future.successful(Ok(prettify(response)))
   }
 
 }
