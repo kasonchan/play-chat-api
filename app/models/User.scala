@@ -3,8 +3,12 @@ package models
 /**
  * Created by kasonchan on 5/20/15.
  */
-case class User(name: String, age: Int)
-
-object User {
-
-}
+case class User(login: String,
+                avatar: String,
+                user_type: String,
+                email: String,
+                location: String,
+                password: String,
+                confirmed: Boolean,
+                created_at: Long,
+                updated_at: Long)
