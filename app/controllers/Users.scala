@@ -24,6 +24,22 @@ object Users extends Controller with MongoController with JSON {
    * @return Action[AnyContent]
    */
   def find(name: String): Action[AnyContent] = Action.async {
+    val response: Future[String] = findHelper(name)
+
+    response.map { r =>
+      Ok(r)
+    }
+  }
+
+  /**
+   * Find helper
+   * Access the db and find the name
+   * If the user is found, return the user
+   * Otherwise return not found
+   * @param name String
+   * @return Future[String]
+   */
+  private def findHelper(name: String): Future[String] = {
     // Perform the query and get a cursor of JsObject
     val cursor: Cursor[JsObject] = usersCollection
       .find(Json.obj("name" -> name))
@@ -37,12 +53,12 @@ object Users extends Controller with MongoController with JSON {
     futureUsersList.map { users =>
       if (users.isEmpty) {
         val response: JsValue = Json.obj("message" -> "Not found")
-        NotFound(prettify(response))
+        prettify(response)
       }
       else {
         // Ok(users.mkString("[", ",", "]"))
         val usersInJson: JsValue = Json.toJson(users)
-        Ok(prettify(usersInJson))
+        prettify(usersInJson)
       }
     }
   }
