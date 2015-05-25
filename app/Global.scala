@@ -30,7 +30,7 @@ with JSON {
   override def onHandlerNotFound(request: RequestHeader): Future[Result] = {
     val response: JsValue = Json.obj("message" -> "Not found")
     Logger.info(response.toString())
-    Future.successful(NotFound(prettify(response)))
+    Future.successful(NotFound(prettify(response)).as("application/json; charset=utf-8"))
   }
 
   /**
@@ -42,7 +42,7 @@ with JSON {
   override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {
     val response: JsValue = Json.obj("message" -> "Bad request")
     Logger.info(response.toString())
-    Future.successful(BadRequest(prettify(response)))
+    Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
   }
 
   /**
@@ -54,7 +54,7 @@ with JSON {
   override def onError(request: RequestHeader, ex: Throwable): Future[Result] = {
     val response: JsValue = Json.obj("message" -> "Oops")
     Logger.error(response.toString())
-    Future.successful(InternalServerError(prettify(response)))
+    Future.successful(InternalServerError(prettify(response)).as("application/json; charset=utf-8"))
   }
 
 }
