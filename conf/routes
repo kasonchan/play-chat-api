@@ -3,13 +3,13 @@
 # ~~~~
 
 # Root
-GET        /api/v0.1/                   controllers.Application.root
+GET         /api/v0.1/                      controllers.Application.root
 
 # Find
-GET        /api/v0.1/users/:name        controllers.Users.find(name)
+GET         /api/v0.1/users/:name           controllers.Users.find(name)
 
 # Create
-POST       /api/v0.1/users/login        controllers.Users.create
+POST        /api/v0.1/users/register        controllers.Users.create
 
 # Map static resources from the /public folder to the /assets URL path
-GET        /assets/*file                controllers.Assets.at(path="/public", file)
+GET         /assets/*file                   controllers.Assets.at(path="/public", file)

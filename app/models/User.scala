@@ -8,7 +8,7 @@ case class User(login: String,
                 user_type: String,
                 email: String,
                 location: String,
-                password: String,
                 confirmed: Boolean,
                 created_at: Long,
                 updated_at: Long)
+
