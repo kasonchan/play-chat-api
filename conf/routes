@@ -6,7 +6,7 @@
 GET         /api/v0.1/                      controllers.Application.root
 
 # Find
-GET         /api/v0.1/users/:name           controllers.Users.find(name)
+GET         /api/v0.1/users/:name           controllers.Users.findLogin(name)
 
 # Create
 POST        /api/v0.1/users/register        controllers.Users.create
