@@ -154,12 +154,12 @@ object Users extends Controller with MongoController with JSON {
           // If the user is already registered, return bad request message
           // Otherwise insert the new user to the database
           // Call printUser to extract the new user information except password
-          val queryLoginResult = findQuery(login)
+          val queryLoginResultFuture: Future[JsValue] = findQuery(login)
 
-          queryLoginResult.map { qlr =>
-            val result = extractUser(qlr)
+          queryLoginResultFuture.map { qlrf =>
+            val queryLoginResult = extractUser(qlrf)
 
-            result match {
+            queryLoginResult match {
               case None =>
                 usersCollection.insert(transformedResult).map { r =>
                   Created
@@ -167,7 +167,7 @@ object Users extends Controller with MongoController with JSON {
                 val pu = printUser(transformedResult)
                 Ok(prettify(pu)).as("application/json; charset=utf-8")
               case Some(user) =>
-                val response = Json.obj("message" -> "Login is already registered")
+                val response: JsObject = Json.obj("message" -> "Login is already registered")
                 BadRequest(response).as("application/json; charset=utf-8")
             }
           }
