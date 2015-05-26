@@ -3,7 +3,7 @@
 # ~~~~
 
 # Root
-GET         /api/v0.1/                      controllers.Application.root
+GET         /api/v0.1                      controllers.Application.root
 
 # Find
 GET         /api/v0.1/users/:name           controllers.Users.findLogin(name)
