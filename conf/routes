@@ -10,11 +10,15 @@ GET         /api/v0.1                        controllers.Application.root
 # ~~~~
 # Users
 # ~~~~
+
 # Get a single user
 GET         /api/v0.1/users/:username        controllers.Users.findByLogin(username)
 
 # Get the authenticated user
 GET         /api/v0.1/user                   controllers.Users.getAuthUser
+
+# Get all users
+GET         /api/v0.1/users                  controllers.Users.findAll
 
 # Register a new user
 POST        /api/v0.1/users/register         controllers.Users.create

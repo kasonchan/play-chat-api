@@ -42,19 +42,24 @@ class UsersTest extends PlaySpecification with JSON {
     }
   }
 
-  "GET /api/v0.1/user must be None" in {
+  "GET /api/v0.1/user must be 401" in {
     running(FakeApplication()) {
-      val request = FakeRequest(GET, "/api/v0.1/users")
+      val request = FakeRequest(GET, "/api/v0.1/user")
       val response = route(request)
-      response must beNone
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+
+      result.header.status mustEqual 401
     }
   }
 
-  "GET /api/v0.1/users must be None" in {
+  "GET /api/v0.1/users must be 200" in {
     running(FakeApplication()) {
       val request = FakeRequest(GET, "/api/v0.1/users")
       val response = route(request)
-      response must beNone
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      result.header.status mustEqual 200
     }
   }
 

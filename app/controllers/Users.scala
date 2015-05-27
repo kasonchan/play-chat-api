@@ -58,6 +58,7 @@ object Users extends Controller with MongoController with JSON {
 
   /**
    * Extract user
+   * Call printUser to remove the password field
    * Return Some(user) if a user is extracted
    * Otherwise, return None
    * @param jsValue JsValue
@@ -72,6 +73,30 @@ object Users extends Controller with MongoController with JSON {
       case None =>
         val users = jsValue.as[JsArray]
         val response = printUser(users(0))
+        Some(response)
+    }
+  }
+
+  /**
+   * Extract users
+   * Call printUser to remove the password field
+   * Return Some(users) if users are extracted
+   * Otherwise return None
+   * @param jsValue JsValue
+   * @return Option[JsValue]
+   */
+  private def extractUsers(jsValue: JsValue): Option[JsValue] = {
+    // Extract messages string if any
+    val jv = (jsValue \ "messages").asOpt[JsValue]
+
+    jv match {
+      case Some(s) => None
+      case None =>
+        val users: JsArray = jsValue.as[JsArray]
+        val usersSeq = users.value.map { user =>
+          printUser(user)
+        }
+        val response = new JsArray(usersSeq)
         Some(response)
     }
   }
@@ -116,7 +141,6 @@ object Users extends Controller with MongoController with JSON {
    * @return Action[AnyContent]
    */
   def findByLogin(target: String): Action[AnyContent] = Action.async {
-
     // Execute findQuery function to access the database to find the login
     val q = Json.obj("login" -> target)
     val futureJsValue: Future[JsValue] = findQuery(q)
@@ -141,13 +165,12 @@ object Users extends Controller with MongoController with JSON {
    * Call findQuery to find matched user login and password in the database
    * Call extract user to get user from the query result
    * Return Ok if a user found
-   * Otherwise return Unauthorized bad credentials
+   * Otherwise return Unauthorized with bad credentials message
    * @param u String
    * @param p String
    * @return Future[Result]
    */
   def findByLoginAndPassword(u: String, p: String): Future[Result] = {
-
     // Execute findQuery function to access the database to find the login and
     // password
     val q = Json.obj("login" -> u, "password" -> p)
@@ -170,6 +193,36 @@ object Users extends Controller with MongoController with JSON {
   }
 
   /**
+   * Find all users
+   * List all the users in the database
+   * Call findQuery to get all the users in the database
+   * Call extractUsers to extract users if any
+   * Return Ok if there are users found
+   * Otherwise return NotFound
+   * @return
+   */
+  def findAll: Action[AnyContent] = Action.async {
+    // Execute findQuery function to access the database to find the login and
+    // password
+    val q = Json.obj()
+    val futureJsValue: Future[JsValue] = findQuery(q)
+
+    futureJsValue.map { jsValue =>
+      // Execute extractUser to extract the user from the query result
+      val js = extractUsers(jsValue)
+
+      js match {
+        case Some(users) =>
+          Logger.info(users.toString)
+          Ok(prettify(users)).as("application/json; charset=utf-8")
+        case None =>
+          Logger.info(jsValue.toString())
+          NotFound(prettify(jsValue)).as("application/json; charset=utf-8")
+      }
+    }
+  }
+
+  /**
    * Get authorized user
    * If authorization can not be extracted from request, return Unauthorized
    * with requires authentication message
@@ -180,7 +233,6 @@ object Users extends Controller with MongoController with JSON {
    * @return Action[AnyContent]
    */
   def getAuthUser: Action[AnyContent] = Action.async { request =>
-
     // Get the authorization header
     val authorization: Option[String] = request.headers.get(AUTHORIZATION)
 
@@ -216,82 +268,81 @@ object Users extends Controller with MongoController with JSON {
    * user
    * @return Action[JsValue]
    */
-  def create: Action[JsValue] = Action.async(parse.json) {
-    request =>
+  def create: Action[JsValue] = Action.async(parse.json) { request =>
 
-      val transformer: Reads[JsObject] =
-        Reads.jsPickBranch[JsString](__ \ "login") and
-          Reads.jsPickBranch[JsString](__ \ "avatar_url") and
-          Reads.jsPickBranch[JsString](__ \ "type") and
-          Reads.jsPickBranch[JsString](__ \ "email") and
-          Reads.jsPickBranch[JsString](__ \ "location") and
-          Reads.jsPickBranch[JsString](__ \ "password") and
-          Reads.jsPickBranch[JsBoolean](__ \ "confirmed") and
-          Reads.jsPickBranch[JsNumber](__ \ "created_at") and
-          Reads.jsPickBranch[JsNumber](__ \ "updated_at") reduce
+    val transformer: Reads[JsObject] =
+      Reads.jsPickBranch[JsString](__ \ "login") and
+        Reads.jsPickBranch[JsString](__ \ "avatar_url") and
+        Reads.jsPickBranch[JsString](__ \ "type") and
+        Reads.jsPickBranch[JsString](__ \ "email") and
+        Reads.jsPickBranch[JsString](__ \ "location") and
+        Reads.jsPickBranch[JsString](__ \ "password") and
+        Reads.jsPickBranch[JsBoolean](__ \ "confirmed") and
+        Reads.jsPickBranch[JsNumber](__ \ "created_at") and
+        Reads.jsPickBranch[JsNumber](__ \ "updated_at") reduce
 
-      val transformedResult = request.body.transform(transformer).map {
-        tr =>
-          tr
-      }.getOrElse {
-        val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
-        response
-      }
+    val transformedResult = request.body.transform(transformer).map {
+      tr =>
+        tr
+    }.getOrElse {
+      val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
+      response
+    }
 
-      // Retrieve the login string from the parsed json
-      val login: String = (transformedResult \ "login").as[String]
-      val email: String = (transformedResult \ "email").as[String]
+    // Retrieve the login string from the parsed json
+    val login: String = (transformedResult \ "login").as[String]
+    val email: String = (transformedResult \ "email").as[String]
 
-      // Check if the new user is already registered
-      // Extract the user from query result
-      // If the user is already registered, return BadRequest messages
-      // Otherwise insert the new user to the database
-      // Call printUser to extract the new user information except password
-      // Return Ok with the new user
-      val l = Json.obj("login" -> login)
-      val queryLoginResultFuture: Future[JsValue] = findQuery(l)
-      val e = Json.obj("email" -> email)
-      val queryEmailResultFuture: Future[JsValue] = findQuery(e)
+    // Check if the new user is already registered
+    // Extract the user from query result
+    // If the user is already registered, return BadRequest messages
+    // Otherwise insert the new user to the database
+    // Call printUser to extract the new user information except password
+    // Return Ok with the new user
+    val l = Json.obj("login" -> login)
+    val queryLoginResultFuture: Future[JsValue] = findQuery(l)
+    val e = Json.obj("email" -> email)
+    val queryEmailResultFuture: Future[JsValue] = findQuery(e)
 
-      val result: Future[Result] =
-        queryLoginResultFuture.zip(queryEmailResultFuture).map {
-          case (qlr, qer) => {
-            val queryLoginResult: Option[JsValue] = extractUser(qlr)
-            val queryEmailResult: Option[JsValue] = extractUser(qer)
+    val result: Future[Result] =
+      queryLoginResultFuture.zip(queryEmailResultFuture).map {
+        case (qlr, qer) => {
+          val queryLoginResult: Option[JsValue] = extractUser(qlr)
+          val queryEmailResult: Option[JsValue] = extractUser(qer)
 
-            (queryLoginResult, queryEmailResult) match {
-              case (Some(l), Some(e)) => {
-                val response: JsValue =
-                  Json.obj("messages" -> Json.arr("Login is already registered",
-                    "Email is already registered"))
-                Logger.info(response.toString())
-                BadRequest(prettify(response)).as("application/json; charset=utf-8")
+          (queryLoginResult, queryEmailResult) match {
+            case (Some(l), Some(e)) => {
+              val response: JsValue =
+                Json.obj("messages" -> Json.arr("Login is already registered",
+                  "Email is already registered"))
+              Logger.info(response.toString())
+              BadRequest(prettify(response)).as("application/json; charset=utf-8")
+            }
+            case (Some(l), None) => {
+              val response: JsValue =
+                Json.obj("messages" -> Json.arr("Login is already registered"))
+              Logger.info(response.toString())
+              BadRequest(prettify(response)).as("application/json; charset=utf-8")
+            }
+            case (None, Some(e)) => {
+              val response: JsValue =
+                Json.obj("messages" -> Json.arr("Email is already registered"))
+              Logger.info(response.toString())
+              BadRequest(prettify(response)).as("application/json; charset=utf-8")
+            }
+            case (None, None) => {
+              usersCollection.insert(transformedResult).map {
+                r => Created
               }
-              case (Some(l), None) => {
-                val response: JsValue =
-                  Json.obj("messages" -> Json.arr("Login is already registered"))
-                Logger.info(response.toString())
-                BadRequest(prettify(response)).as("application/json; charset=utf-8")
-              }
-              case (None, Some(e)) => {
-                val response: JsValue =
-                  Json.obj("messages" -> Json.arr("Email is already registered"))
-                Logger.info(response.toString())
-                BadRequest(prettify(response)).as("application/json; charset=utf-8")
-              }
-              case (None, None) => {
-                usersCollection.insert(transformedResult).map {
-                  r => Created
-                }
-                val pu = printUser(transformedResult)
-                Logger.info(pu.toString())
-                Status(201)(prettify(pu)).as("application/json; charset=utf-8")
-              }
+              val pu = printUser(transformedResult)
+              Logger.info(pu.toString())
+              Status(201)(prettify(pu)).as("application/json; charset=utf-8")
             }
           }
         }
+      }
 
-      result
+    result
   }
 
 }
