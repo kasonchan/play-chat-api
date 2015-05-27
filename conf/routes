@@ -2,14 +2,22 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+# ~~~~
 # Root
-GET         /api/v0.1                      controllers.Application.root
+# ~~~~
+GET         /api/v0.1                        controllers.Application.root
 
-# Find
-GET         /api/v0.1/users/:name           controllers.Users.findLogin(name)
+# ~~~~
+# Users
+# ~~~~
+# Get a single user
+GET         /api/v0.1/users/:username        controllers.Users.findByLogin(username)
 
-# Create
-POST        /api/v0.1/users/register        controllers.Users.create
+# Get the authenticated user
+GET         /api/v0.1/user                   controllers.Users.getAuthUser
+
+# Register a new user
+POST        /api/v0.1/users/register         controllers.Users.create
 
 # Map static resources from the /public folder to the /assets URL path
-GET         /assets/*file                   controllers.Assets.at(path="/public", file)
+GET         /assets/*file                    controllers.Assets.at(path="/public", file)

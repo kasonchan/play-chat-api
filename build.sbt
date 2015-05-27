@@ -6,6 +6,8 @@ lazy val `playchatapi` = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.11.5"
 
+scalacOptions ++= Seq("-feature")
+
 libraryDependencies ++= Seq(filters,
   "org.reactivemongo" %% "play2-reactivemongo" % "0.10.5.0.akka23")
 
