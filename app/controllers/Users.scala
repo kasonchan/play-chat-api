@@ -10,6 +10,7 @@ import play.api.mvc._
 import play.modules.reactivemongo.MongoController
 import play.modules.reactivemongo.json.collection.JSONCollection
 import reactivemongo.api.Cursor
+import validations.UserValidation
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -18,7 +19,7 @@ import scala.language.postfixOps
 /**
  * Created by kasonchan on 5/20/15.
  */
-object Users extends Controller with MongoController with JSON {
+object Users extends Controller with MongoController with JSON with UserValidation {
 
   /**
    * usersCollection
@@ -281,68 +282,78 @@ object Users extends Controller with MongoController with JSON {
         Reads.jsPickBranch[JsNumber](__ \ "created_at") and
         Reads.jsPickBranch[JsNumber](__ \ "updated_at") reduce
 
-    val transformedResult = request.body.transform(transformer).map {
-      tr =>
-        tr
+    val transformedResult: JsValue = request.body.transform(transformer).map { tr =>
+      tr
     }.getOrElse {
       val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
       response
     }
 
-    // Retrieve the login string from the parsed json
-    val login: String = (transformedResult \ "login").as[String]
-    val email: String = (transformedResult \ "email").as[String]
+    // Retrieve the information from the parsed json and validate it
+    val validatedResult: Option[JsValue] = validateUser(transformedResult)
 
-    // Check if the new user is already registered
-    // Extract the user from query result
-    // If the user is already registered, return BadRequest messages
-    // Otherwise insert the new user to the database
-    // Call printUser to extract the new user information except password
-    // Return Ok with the new user
-    val l = Json.obj("login" -> login)
-    val queryLoginResultFuture: Future[JsValue] = findQuery(l)
-    val e = Json.obj("email" -> email)
-    val queryEmailResultFuture: Future[JsValue] = findQuery(e)
+    validatedResult match {
+      case Some(resultJs) => {
+        val response: JsValue = Json.obj("messages" -> resultJs)
+        Logger.info(response.toString())
+        Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
+      }
+      case None => {
+        val login: String = (transformedResult \ "login").as[String]
+        val email: String = (transformedResult \ "email").as[String]
 
-    val result: Future[Result] =
-      queryLoginResultFuture.zip(queryEmailResultFuture).map {
-        case (qlr, qer) => {
-          val queryLoginResult: Option[JsValue] = extractUser(qlr)
-          val queryEmailResult: Option[JsValue] = extractUser(qer)
+        // Check if the new user is already registered
+        // Extract the user from query result
+        // If the user is already registered, return BadRequest messages
+        // Otherwise insert the new user to the database
+        // Call printUser to extract the new user information except password
+        // Return Ok with the new user
+        val l = Json.obj("login" -> login)
+        val queryLoginResultFuture: Future[JsValue] = findQuery(l)
+        val e = Json.obj("email" -> email)
+        val queryEmailResultFuture: Future[JsValue] = findQuery(e)
 
-          (queryLoginResult, queryEmailResult) match {
-            case (Some(l), Some(e)) => {
-              val response: JsValue =
-                Json.obj("messages" -> Json.arr("Login is already registered",
-                  "Email is already registered"))
-              Logger.info(response.toString())
-              BadRequest(prettify(response)).as("application/json; charset=utf-8")
-            }
-            case (Some(l), None) => {
-              val response: JsValue =
-                Json.obj("messages" -> Json.arr("Login is already registered"))
-              Logger.info(response.toString())
-              BadRequest(prettify(response)).as("application/json; charset=utf-8")
-            }
-            case (None, Some(e)) => {
-              val response: JsValue =
-                Json.obj("messages" -> Json.arr("Email is already registered"))
-              Logger.info(response.toString())
-              BadRequest(prettify(response)).as("application/json; charset=utf-8")
-            }
-            case (None, None) => {
-              usersCollection.insert(transformedResult).map {
-                r => Created
+        val result: Future[Result] =
+          queryLoginResultFuture.zip(queryEmailResultFuture).map {
+            case (qlr, qer) => {
+              val queryLoginResult: Option[JsValue] = extractUser(qlr)
+              val queryEmailResult: Option[JsValue] = extractUser(qer)
+
+              (queryLoginResult, queryEmailResult) match {
+                case (Some(l), Some(e)) => {
+                  val response: JsValue =
+                    Json.obj("messages" -> Json.arr("Login is already registered",
+                      "Email is already registered"))
+                  Logger.info(response.toString())
+                  BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                }
+                case (Some(l), None) => {
+                  val response: JsValue =
+                    Json.obj("messages" -> Json.arr("Login is already registered"))
+                  Logger.info(response.toString())
+                  BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                }
+                case (None, Some(e)) => {
+                  val response: JsValue =
+                    Json.obj("messages" -> Json.arr("Email is already registered"))
+                  Logger.info(response.toString())
+                  BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                }
+                case (None, None) => {
+                  usersCollection.insert(transformedResult).map {
+                    r => Created
+                  }
+                  val pu = printUser(transformedResult)
+                  Logger.info(pu.toString())
+                  Status(201)(prettify(pu)).as("application/json; charset=utf-8")
+                }
               }
-              val pu = printUser(transformedResult)
-              Logger.info(pu.toString())
-              Status(201)(prettify(pu)).as("application/json; charset=utf-8")
             }
           }
-        }
-      }
 
-    result
+        result
+      }
+    }
   }
 
 }

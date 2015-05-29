@@ -123,6 +123,41 @@ class UsersTest extends PlaySpecification with JSON {
   }
 
   "POST /api/v0.1/users/register " +
+    """{"login": "playchat",
+             "avatar_url" : "",
+             "type": "admin",
+             "email": "playchat@playchat.com",
+             "location": "playchat",
+             "password": "P1aycha7<3i",
+             "confirmed": true,
+             "created_at": 1432441527583,
+             "updated_at": 1432441527583 } """ +
+    "must be 400 " in {
+    running(FakeApplication()) {
+      val request = FakeRequest(POST, "/api/v0.1/users/register")
+        .withJsonBody(Json.parse( """{ "login": "playchat",
+                                    | "avatar_url": "",
+                                    | "type": "admin",
+                                    | "email": "playchat@playchat.com",
+                                    | "location": "playchat",
+                                    | "password": "P1aycha7<3i",
+                                    | "confirmed": true,
+                                    | "created_at": 1432441527583,
+                                    | "updated_at": 1432441527583 }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" -> Json.arr("Login is already registered",
+          "Email is already registered"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 400
+    }
+  }
+
+  "POST /api/v0.1/users/register " +
     """{"login": "play",
              "avatar_url" : "",
              "type": "admin",
@@ -231,6 +266,66 @@ class UsersTest extends PlaySpecification with JSON {
 
       contentAsString(response.get) mustEqual prettify(expectedResponse)
       result.header.status mustEqual 201
+    }
+  }
+
+  "POST /api/v0.1/users/register " +
+    """{"login": "",
+             "avatar_url" : "",
+             "type": "user",
+             "email": "",
+             "location": "a",
+             "password": "",
+             "confirmed": true,
+             "created_at": 1432441527583,
+             "updated_at": 1432441527583 } """ +
+    "must be 400" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(POST, "/api/v0.1/users/register")
+        .withHeaders("Content-Type" -> "application/json; charset=utf-8")
+        .withJsonBody(Json.parse( """ { "login": "",
+                                    | "avatar_url": "",
+                                    | "type": "user",
+                                    | "email": "",
+                                    | "location": "a",
+                                    | "password": "",
+                                    | "confirmed": true,
+                                    | "created_at": 1432441527583,
+                                    | "updated_at": 1432441527583 } """.stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" ->
+          Json.arr("Username must be at least 1 character and at most 50 characters",
+            "Doesn't look like a valid email",
+            "Password must be at least 8 characters and at most 50 characters"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 400
+    }
+  }
+
+  "POST /api/v0.1/users/register " +
+    """{} """ +
+    "must be 400" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(POST, "/api/v0.1/users/register")
+        .withHeaders("Content-Type" -> "application/json; charset=utf-8")
+        .withJsonBody(Json.parse( """ {} """.stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" ->
+          Json.arr("A username is required",
+            "A email is required",
+            "A password is required"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 400
     }
   }
 
