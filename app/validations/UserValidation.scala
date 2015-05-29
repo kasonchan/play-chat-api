@@ -17,12 +17,13 @@ trait UserValidation {
    */
   def checkLogin(login: Option[String]): Option[String] = {
     login match {
-      case Some(l) =>
+      case Some(l: String) =>
         if ((l.length < 1) || (l.length > 50))
           Some("Username must be at least 1 character and at most 50 characters")
         else
           None
       case None => Some("A username is required")
+      case _ => Some("Invalid login")
     }
   }
 
@@ -36,7 +37,7 @@ trait UserValidation {
    */
   def checkEmail(email: Option[String]): Option[String] = {
     email match {
-      case Some(e) =>
+      case Some(e: String) =>
         val emailPattern = """([a-zA-Z0-9]+)@([a-zA-Z0-9]+)(\.)([a-zA-Z0-9]+)"""
 
         if (!e.matches(emailPattern))
@@ -44,6 +45,7 @@ trait UserValidation {
         else
           None
       case None => Some("A email is required")
+      case _ => Some("Invalid email")
     }
   }
 
@@ -63,6 +65,46 @@ trait UserValidation {
         else
           None
       case None => Some("A password is required")
+      case _ => Some("Invalid password")
+    }
+  }
+
+  /**
+   * Check type
+   * Either admin or user
+   * Return None if the type is valid
+   * Otherwise return Some with error message
+   * @param userType Option[String]
+   * @return
+   */
+  def checkType(userType: Option[String]): Option[String] = {
+    userType match {
+      case Some(t: String) => t match {
+        case "admin" => Some("Bad credentials")
+        case "user" => None
+        case _ => Some("Invalid type")
+      }
+      case None => Some("A type is needed")
+      case _ => Some("Invalid type")
+    }
+  }
+
+  /**
+   * Check confirmed
+   * Either true or false
+   * Return None if the value if false
+   * Otherwise return Some with error message
+   * @param confirmed Option[Boolean]
+   * @return Option[String]
+   */
+  def checkConfirmed(confirmed: Option[Boolean]): Option[String] = {
+    confirmed match {
+      case Some(b: Boolean) => b match {
+        case true => Some("Default to false")
+        case false => None
+        case _ => Some("Invalid confirmed")
+      }
+      case None => Some("Confirmed is needed")
     }
   }
 

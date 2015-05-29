@@ -117,6 +117,40 @@ class UserValidationTest extends PlaySpecification with UserValidation {
   }
 
   /**
+   * Check type
+   */
+  "checkType(None) mustEqual Some(\"A type is needed\")" in {
+    checkType(None) mustEqual Some("A type is needed")
+  }
+
+  "checkType(Some(\"admin\")) mustEqual Some(\"Bad credentials\")" in {
+    checkType(Some("admin")) mustEqual Some("Bad credentials")
+  }
+
+  "checkType(Some(\"user\")) mustEqual None" in {
+    checkType(Some("user")) mustEqual None
+  }
+
+  "checkType(Some(\"\")) mustEqual Some(\"Invalid type\")" in {
+    checkType(Some("")) mustEqual Some("Invalid type")
+  }
+
+  /**
+   * Check confirmed
+   */
+  "checkConfirmed(Some(true)) mustEqual Some(\"Default to false\")" in {
+    checkConfirmed(Some(true)) mustEqual Some("Default to false")
+  }
+
+  "checkConfirmed(Some(false)) mustEqual None" in {
+    checkConfirmed(Some(false)) mustEqual None
+  }
+
+  "checkConfirmed(None) mustEqual Some(\"Confirmed is needed\")" in {
+    checkConfirmed(None) mustEqual Some("Confirmed is needed")
+  }
+
+  /**
    * Validate user
    */
   """validateUser({"login": "playchatapi",
