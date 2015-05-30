@@ -38,7 +38,7 @@ trait UserValidation {
   def checkEmail(email: Option[String]): Option[String] = {
     email match {
       case Some(e: String) =>
-        val emailPattern = """([a-zA-Z0-9]+)@([a-zA-Z0-9]+)(\.)([a-zA-Z0-9]+)"""
+        val emailPattern = """([a-zA-Z0-9._]+)@([a-zA-Z0-9._]+)(\.)([a-zA-Z0-9]+)"""
 
         if (!e.matches(emailPattern))
           Some("Doesn't look like a valid email")
@@ -102,7 +102,6 @@ trait UserValidation {
       case Some(b: Boolean) => b match {
         case true => Some("Default to false")
         case false => None
-        case _ => Some("Invalid confirmed")
       }
       case None => Some("Confirmed is needed")
     }
