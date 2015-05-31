@@ -79,7 +79,7 @@ class UsersTest extends PlaySpecification with JSON {
       val response = route(request)
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
-      val expectedResponse = Json.obj("messages" -> Json.arr("Not found :("))
+      val expectedResponse = Json.obj("messages" -> Json.arr("Not found"))
 
       contentAsString(response.get) mustEqual prettify(expectedResponse)
       result.header.status mustEqual 404

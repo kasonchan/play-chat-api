@@ -12,7 +12,7 @@ GET         /api/v0.1                        controllers.Application.root
 # Users
 # ~~~~
 # Get a single user
-GET         /api/v0.1/users/:username        controllers.Users.findByLogin(username)
+GET         /api/v0.1/users/:username        controllers.Users.find(username)
 
 # Get the authenticated user
 GET         /api/v0.1/user                   controllers.Users.getAuthUser
@@ -28,6 +28,9 @@ POST        /api/v0.1/users/register         controllers.Users.create
 # ~~~~
 # Get all rooms with the authenticated user
 GET         /api/v0.1/rooms                  controllers.Rooms.getRooms
+
+# Create a new room
+POST        /api/v0.1/rooms/create           controllers.Rooms.create
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                    controllers.Assets.at(path="/public", file)
