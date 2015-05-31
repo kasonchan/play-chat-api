@@ -86,7 +86,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
    * @param usersJsValue JsValue
    * @return Option[JsValue]
    */
-  private def extractUsers(usersJsValue: JsValue): Option[JsValue] = {
+  def extractUsers(usersJsValue: JsValue): Option[JsValue] = {
     // Extract messages string if any
     val jv = (usersJsValue \ "messages").asOpt[JsValue]
 

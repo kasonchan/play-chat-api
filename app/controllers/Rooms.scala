@@ -122,7 +122,7 @@ object Rooms extends Controller with MongoController with JSON {
     val futureJsValue: Future[JsValue] = queryFind(q)
 
     futureJsValue.map { jsValue =>
-      // Execute extractUser to extract the room from the query result
+      // Execute extractRooms to extract the room from the query result
       val js: Option[JsValue] = extractRooms(jsValue)
 
       js match {
@@ -220,7 +220,6 @@ object Rooms extends Controller with MongoController with JSON {
     }
   }
 
-
   /**
    * Find all rooms by room login and user login
    * @param login String
@@ -231,8 +230,8 @@ object Rooms extends Controller with MongoController with JSON {
     // Execute queryFind function to access the database to find the login and
     // password
     val q = Json.obj({
-      "login" -> login
       "users" -> user
+      "login" -> login
     })
     val futureJsValue: Future[JsValue] = queryFind(q)
 
@@ -274,28 +273,37 @@ object Rooms extends Controller with MongoController with JSON {
         }
 
         val login: String = (transformedResult \ "login").as[String]
-        val users: Array[String] = (transformedResult \ "users").as[Array[String]]
 
         val authorizedFuture: Future[Option[JsValue]] =
-          findByLoginAndPassword(decoded(0).toString, decoded(1).toString)
-        val roomsFuture = findByLoginAndUser(login, decoded(0).toString)
+          findByLoginAndPassword(decoded(0).toString(), decoded(1).toString())
+        val roomsFuture: Future[Option[JsValue]] =
+          findByLoginAndUser(login, decoded(0).toString())
 
         authorizedFuture.zip(roomsFuture).map {
-          case (Some(a: JsValue), r) =>
-            r match {
-              case Some(jv) =>
-                val response = Json.obj("messages" -> Json.arr("Login is already registered"))
-                Logger.info(response.toString())
-                Unauthorized(prettify(response)).as("application/json; charset=utf-8")
-              case None =>
-                roomsCollection.insert(transformedResult).map {
-                  r => Created
-                }
-                val pu = roomPrinting(transformedResult)
-                Logger.info(pu.toString())
-                Status(201)(prettify(pu)).as("application/json; charset=utf-8")
+          case (authorized@Some(a: JsValue), rooms@Some(jv: JsValue)) =>
+            println(authorized)
+            println(rooms)
+            val response = Json.obj("messages" -> Json.arr("Login is already registered"))
+            Logger.info(response.toString())
+            BadRequest(prettify(response)).as("application/json; charset=utf-8")
+          case (authorized@Some(a: JsValue), rooms@None) =>
+            println(authorized)
+            println(rooms)
+            roomsCollection.insert(transformedResult).map {
+              r => Created
             }
-          case (None, r) =>
+            val pu = roomPrinting(transformedResult)
+            Logger.info(pu.toString())
+            Status(201)(prettify(pu)).as("application/json; charset=utf-8")
+          case (authorized@None, rooms@Some(jv: JsValue)) =>
+            println(authorized)
+            println(rooms)
+            val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+            Logger.info(response.toString())
+            Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+          case (authorized@None, rooms@None) =>
+            println(authorized)
+            println(rooms)
             val response = Json.obj("messages" -> Json.arr("Bad credentials"))
             Logger.info(response.toString())
             Unauthorized(prettify(response)).as("application/json; charset=utf-8")
