@@ -27,7 +27,9 @@ trait RoomValidation {
 
   /**
    * Check users
-   *
+   * Length of the users must be at least 2 and at most 100
+   * Return sorted Some(users) if valid
+   * Otherwise return with error message
    * @param users
    * @return
    */
@@ -43,6 +45,14 @@ trait RoomValidation {
     }
   }
 
+  /**
+   * Check privacy
+   * Valid values: private, public
+   * Return None if privacy is valid
+   * Otherwise return with error message
+   * @param privacy
+   * @return
+   */
   def checkPrivacy(privacy: Option[String]): Option[String] = {
     privacy match {
       case Some("private") => None

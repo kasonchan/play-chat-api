@@ -249,6 +249,26 @@ object Rooms extends Controller with MongoController with JSON {
   }
 
   /**
+   * Find the room by the users
+   * @param users Seq[String]
+   * @return Future[Option[JsValue]]
+   */
+  def findByUsers(users: Seq[String]): Future[Option[JsValue]] = {
+    val q = Json.obj("users" -> users)
+    val futureJsValue: Future[JsValue] = queryFind(q)
+
+    futureJsValue.map { jsValue =>
+      // Execute extractUser to extract the room from the query result
+      val js: Option[JsValue] = extractRooms(jsValue)
+
+      js match {
+        case Some(rooms) => Some(rooms)
+        case None => None
+      }
+    }
+  }
+
+  /**
    * Create new room
    * @return Action[JsValue]
    */
@@ -267,49 +287,55 @@ object Rooms extends Controller with MongoController with JSON {
             Reads.jsPickBranch[JsNumber](__ \ "created_at") and
             Reads.jsPickBranch[JsNumber](__ \ "updated_at") reduce
 
-        val transformedResult: JsValue = request.body.transform(transformer).map { tr =>
-          tr
-        }.getOrElse {
-          val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
-          response
-        }
-
-        val login: String = (transformedResult \ "login").as[String]
+        val transformedResult: JsValue =
+          request.body.transform(transformer).map { tr =>
+            tr
+          }.getOrElse {
+            val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
+            response
+          }
 
         val authorizedFuture: Future[Option[JsValue]] =
           findByLoginAndPassword(decoded(0).toString(), decoded(1).toString())
-        val roomsFuture: Future[Option[JsValue]] =
-          findByLoginAndUser(login, decoded(0).toString())
 
-        authorizedFuture.zip(roomsFuture).map {
-          case (authorized@Some(a: JsValue), rooms@Some(jv: JsValue)) =>
-            println(authorized)
-            println(rooms)
-            val response = Json.obj("messages" -> Json.arr("Login is already registered"))
+        val login: String = (transformedResult \ "login").asOpt[String].getOrElse("")
+        val avatar_url: String = (transformedResult \ "avatar_url").asOpt[String].getOrElse("")
+        val users: Seq[String] = (transformedResult \ "users").asOpt[Seq[String]].getOrElse(Seq())
+        val privacy: String = (transformedResult \ "privacy").asOpt[String].getOrElse("private")
+        val created_at: Long = (transformedResult \ "created_at").asOpt[Long].getOrElse(System.currentTimeMillis())
+        val updated_at: Long = (transformedResult \ "updated_at").asOpt[Long].getOrElse(System.currentTimeMillis())
+
+        // Sort the users
+        val sortedUsers = users.sortWith(_ < _)
+        val usersFuture: Future[Option[JsValue]] = findByUsers(sortedUsers)
+
+        authorizedFuture.zip(usersFuture).map {
+          case (Some(authorized: JsValue), Some(users)) =>
+            val response = Json.obj("messages" -> Json.arr("Room is already created"))
             Logger.info(response.toString())
             BadRequest(prettify(response)).as("application/json; charset=utf-8")
-          case (authorized@Some(a: JsValue), rooms@None) =>
-            println(authorized)
-            println(rooms)
-            roomsCollection.insert(transformedResult).map {
+          case (Some(authorized: JsValue), None) =>
+            val sortedRoom = Json.obj(
+              "login" -> login,
+              "avatar_url" -> avatar_url,
+              "users" -> sortedUsers,
+              "privacy" -> privacy,
+              "created_at" -> created_at,
+              "updated_at" -> updated_at
+            )
+
+            roomsCollection.insert(sortedRoom).map {
               r => Created
             }
-            val pu = roomPrinting(transformedResult)
+            val pu = roomPrinting(sortedRoom)
             Logger.info(pu.toString())
             Status(201)(prettify(pu)).as("application/json; charset=utf-8")
-          case (authorized@None, rooms@Some(jv: JsValue)) =>
-            println(authorized)
-            println(rooms)
-            val response = Json.obj("messages" -> Json.arr("Bad credentials"))
-            Logger.info(response.toString())
-            Unauthorized(prettify(response)).as("application/json; charset=utf-8")
-          case (authorized@None, rooms@None) =>
-            println(authorized)
-            println(rooms)
+          case (None, _) =>
             val response = Json.obj("messages" -> Json.arr("Bad credentials"))
             Logger.info(response.toString())
             Unauthorized(prettify(response)).as("application/json; charset=utf-8")
         }
+
       case (jv: JsValue) =>
         // Unauthorized bad credentials or requires authentication
         Logger.info(jv.toString)
