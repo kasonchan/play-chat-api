@@ -31,6 +31,7 @@ object Rooms extends Controller with MongoController with JSON {
   /**
    * Find query
    * Access the database and find with the query
+   * Sort the rooms in ascending order
    * Return the room(s) if there is/are match(es)
    * Otherwise return not found message
    * @param q: JsValue
@@ -40,6 +41,7 @@ object Rooms extends Controller with MongoController with JSON {
     // Perform the query and get a cursor of JsObject
     val cursor: Cursor[JsObject] = roomsCollection
       .find(q)
+      .sort(Json.obj("login" -> 1))
       .cursor[JsObject]
 
     // Gather all the JsObjects in a Seq

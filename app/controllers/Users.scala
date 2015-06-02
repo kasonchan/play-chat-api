@@ -31,6 +31,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
   /**
    * Find query
    * Access the database and find the target
+   * Sort the users in ascending order
    * Return the user(s) if there is/are match(es)
    * Otherwise return not found messages
    * @param q: String
@@ -40,6 +41,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
     // Perform the query and get a cursor of JsObject
     val cursor: Cursor[JsObject] = usersCollection
       .find(q)
+      .sort(Json.obj("login" -> 1))
       .cursor[JsObject]
 
     // Gather all the JsObjects in a Seq
