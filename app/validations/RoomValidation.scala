@@ -1,5 +1,7 @@
 package validations
 
+import play.api.libs.json.JsValue
+
 /**
  * Created by ka-son on 5/31/15.
  */
@@ -60,6 +62,24 @@ trait RoomValidation {
       case None => Some("Privacy is required")
       case _ => Some("Invalid privacy")
     }
+  }
+
+  /**
+   * Validate room
+   * Valid users length: 2 - 100
+   * Check duplication
+   * @param jv JsValue
+   * @return Option[String]
+   */
+  def validateRoom(creator: String, jv: JsValue): Option[String] = {
+    val users: Seq[String] = (jv \ "users").asOpt[Seq[String]].getOrElse(Seq())
+
+    if ((users.toSet.size < 2) || (users.toSet.size > 100))
+      Some("Number of users must be at least 2 and at most 100")
+    else if (users.toSet.size != users.size)
+      Some("Users must not be duplicated")
+    else
+      None
   }
 
 }

@@ -1,16 +1,16 @@
 package controllers
 
-import controllers.Users.findByLoginAndPassword
+import controllers.Users.{findByLoginAndPassword, findByLogins}
 import json.JSON
 import org.apache.commons.codec.binary.Base64.decodeBase64
 import play.api.Logger
-import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import play.api.mvc._
 import play.modules.reactivemongo.MongoController
 import play.modules.reactivemongo.json.collection.JSONCollection
 import reactivemongo.api.Cursor
+import validations.RoomValidation
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -19,7 +19,7 @@ import scala.language.postfixOps
 /**
  * Created by ka-son on 5/27/15.
  */
-object Rooms extends Controller with MongoController with JSON {
+object Rooms extends Controller with MongoController with JSON with RoomValidation {
 
   /**
    * Rooms collection
@@ -270,72 +270,113 @@ object Rooms extends Controller with MongoController with JSON {
 
   /**
    * Create new room
+   * Check authorization
+   * Check json format
+   * Validate users
+   * Check if authorized
+   * Check room is already created
+   * Check all users are valid
    * @return Action[JsValue]
    */
   def create: Action[JsValue] = Action.async(parse.json) { request =>
     // Get the authorization header
     val authorization: Option[String] = request.headers.get(AUTHORIZATION)
 
+    // Check for authentication
     getAuthorized(authorization) match {
       case Some(decoded: Array[String]) =>
+        // Valid authentication
 
-        val transformer: Reads[JsObject] =
-          Reads.jsPickBranch[JsString](__ \ "login") and
-            Reads.jsPickBranch[JsString](__ \ "avatar_url") and
-            Reads.jsPickBranch[JsArray](__ \ "users") and
-            Reads.jsPickBranch[JsString](__ \ "privacy") and
-            Reads.jsPickBranch[JsNumber](__ \ "created_at") and
-            Reads.jsPickBranch[JsNumber](__ \ "updated_at") reduce
+        val transformer: Reads[JsObject] = Reads.jsPickBranch[JsArray](__ \ "users")
 
-        val transformedResult: JsValue =
+        // Transform the json format
+        val transformedResult: Option[JsValue] =
           request.body.transform(transformer).map { tr =>
-            tr
+            // Valid json format
+            Some(tr)
           }.getOrElse {
-            val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
-            response
+            // Invalid json format
+            None
           }
 
-        val authorizedFuture: Future[Option[JsValue]] =
-          findByLoginAndPassword(decoded(0).toString(), decoded(1).toString())
+        transformedResult match {
+          case Some(tr: JsValue) =>
+            // Valid json format
 
-        val login: String = (transformedResult \ "login").asOpt[String].getOrElse("")
-        val avatar_url: String = (transformedResult \ "avatar_url").asOpt[String].getOrElse("")
-        val users: Seq[String] = (transformedResult \ "users").asOpt[Seq[String]].getOrElse(Seq())
-        val privacy: String = (transformedResult \ "privacy").asOpt[String].getOrElse("private")
-        val created_at: Long = (transformedResult \ "created_at").asOpt[Long].getOrElse(System.currentTimeMillis())
-        val updated_at: Long = (transformedResult \ "updated_at").asOpt[Long].getOrElse(System.currentTimeMillis())
+            // Check the individual users are registered
+            // Validate room
+            try {
+              val validatedRoom: Option[String] = validateRoom(decoded(0).toString(), tr)
 
-        // Sort the users
-        val sortedUsers = users.sortWith(_ < _)
-        val usersFuture: Future[Option[JsValue]] = findByUsers(sortedUsers)
+              validatedRoom match {
+                case Some(s: String) =>
+                  val response = Json.obj("messages" -> Json.arr(s))
+                  Logger.info(response.toString)
+                  Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
+                case None =>
+                  // Check if the user is authorized
+                  val authorizedFuture: Future[Option[JsValue]] =
+                    findByLoginAndPassword(decoded(0).toString(), decoded(1).toString())
 
-        authorizedFuture.zip(usersFuture).map {
-          case (Some(authorized: JsValue), Some(users)) =>
-            val response = Json.obj("messages" -> Json.arr("Room is already created"))
-            Logger.info(response.toString())
-            BadRequest(prettify(response)).as("application/json; charset=utf-8")
-          case (Some(authorized: JsValue), None) =>
-            val sortedRoom = Json.obj(
-              "login" -> login,
-              "avatar_url" -> avatar_url,
-              "users" -> sortedUsers,
-              "privacy" -> privacy,
-              "created_at" -> created_at,
-              "updated_at" -> updated_at
-            )
+                  val users: Seq[String] = (tr \ "users").asOpt[Seq[String]].getOrElse(Seq())
 
-            roomsCollection.insert(sortedRoom).map {
-              r => Created
+                  // Sort the users
+                  val sortedUsers = users.sortWith(_ < _)
+                  // Check if the room of users is already existed
+                  val roomFuture: Future[Option[JsValue]] = findByUsers(sortedUsers)
+
+                  // Check all the users are valid
+                  val usersFuture: Future[Option[String]] = findByLogins(sortedUsers)
+
+                  authorizedFuture.zip(usersFuture).zip(roomFuture).map {
+                    case ((Some(authorized: JsValue), Some(s: String)), Some(users)) =>
+                      val response = Json.obj("messages" -> Json.arr(s, "Room is already created"))
+                      Logger.info(response.toString())
+                      BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                    case ((Some(authorized: JsValue), Some(s: String)), None) =>
+                      val response = Json.obj("messages" -> Json.arr(s))
+                      Logger.info(response.toString())
+                      BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                    case ((Some(authorized: JsValue), None), Some(users)) =>
+                      val response = Json.obj("messages" -> Json.arr("Room is already created"))
+                      Logger.info(response.toString())
+                      BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                    case ((Some(authorized: JsValue), None), None) =>
+                      // Create a new room
+                      val room = Json.obj(
+                        "login" -> "",
+                        "avatar_url" -> "",
+                        "users" -> sortedUsers,
+                        "privacy" -> "private",
+                        "created_at" -> System.currentTimeMillis(),
+                        "updated_at" -> System.currentTimeMillis()
+                      )
+
+                      // Insert the room into the db
+                      roomsCollection.insert(room).map {
+                        r => Created
+                      }
+                      val pu = roomPrinting(room)
+                      Logger.info(pu.toString())
+                      Status(201)(prettify(pu)).as("application/json; charset=utf-8")
+                    case ((None, _), _) =>
+                      val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                      Logger.info(response.toString())
+                      Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+                  }
+              }
+            } catch {
+              case e: Exception =>
+                val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                Logger.info(response.toString())
+                Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
             }
-            val pu = roomPrinting(sortedRoom)
-            Logger.info(pu.toString())
-            Status(201)(prettify(pu)).as("application/json; charset=utf-8")
-          case (None, _) =>
-            val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+          case None =>
+            // Invalid json format
+            val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
             Logger.info(response.toString())
-            Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+            Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
         }
-
       case (jv: JsValue) =>
         // Unauthorized bad credentials or requires authentication
         Logger.info(jv.toString)
