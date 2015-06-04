@@ -118,9 +118,9 @@ object Rooms extends Controller with MongoController with JSON with RoomValidati
   def findByUser(user: String): Future[Result] = {
     // Execute queryFind function to access the database to find the login and
     // password
-    val q = Json.obj({
+    val q = Json.obj(
       "users" -> user
-    })
+    )
     val futureJsValue: Future[JsValue] = queryFind(q)
 
     futureJsValue.map { jsValue =>
@@ -231,10 +231,10 @@ object Rooms extends Controller with MongoController with JSON with RoomValidati
   def findByLoginAndUser(login: String, user: String): Future[Option[JsValue]] = {
     // Execute queryFind function to access the database to find the login and
     // password
-    val q = Json.obj({
-      "users" -> user
+    val q = Json.obj(
+      "users" -> user,
       "login" -> login
-    })
+    )
     val futureJsValue: Future[JsValue] = queryFind(q)
 
     futureJsValue.map { jsValue =>
@@ -381,6 +381,56 @@ object Rooms extends Controller with MongoController with JSON with RoomValidati
         // Unauthorized bad credentials or requires authentication
         Logger.info(jv.toString)
         Future.successful(Unauthorized(prettify(jv)).as("application/json; charset=utf-8"))
+    }
+  }
+
+  /**
+   * Find all rooms by username which are public
+   * List all the rooms in the database that contains the username which are
+   * public
+   * Return Some(rooms) if there are rooms found
+   * Otherwise return None
+   * @param user String
+   * @return Future[Option[JsValue]]
+   */
+  def findByUserAndPublic(user: String): Future[Option[JsValue]] = {
+    // Execute queryFind function to access the database to find the login and
+    // password
+    val q = Json.obj(
+      "users" -> user,
+      "privacy" -> "public"
+    )
+    val futureJsValue: Future[JsValue] = queryFind(q)
+
+    futureJsValue.map { jsValue =>
+      // Execute extractRooms to extract the room from the query result
+      val js: Option[JsValue] = extractRooms(jsValue)
+
+      js match {
+        case Some(rooms) => Some(rooms)
+        case None => None
+      }
+    }
+  }
+
+  /**
+   * Find
+   * Find all the rooms by username which are public
+   * @param user String
+   * @return Action[AnyContent]
+   */
+  def find(user: String): Action[AnyContent] = Action.async {
+    val queryResult: Future[Option[JsValue]] = findByUserAndPublic(user)
+
+    queryResult.map {
+      case Some(rooms: JsValue) =>
+        val response: JsValue = rooms
+        Logger.info(response.toString())
+        Ok(prettify(response)).as("application/json; charset=utf-8")
+      case None =>
+        val response = Json.obj("messages" -> Json.arr("Not found"))
+        Logger.info(response.toString())
+        NotFound(prettify(response)).as("application/json; charset=utf-8")
     }
   }
 

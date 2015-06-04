@@ -86,13 +86,13 @@ class UsersTest extends PlaySpecification with JSON {
     }
   }
 
-  "POST /api/v0.1/users/register " +
+  "POST /api/v0.1/users " +
     """{"login": "playchat",
        "email": "playchat@playchat.com",
        "password": "P1aycha7<3i" } """ +
     "must be 400 " in {
     running(FakeApplication()) {
-      val request = FakeRequest(POST, "/api/v0.1/users/register")
+      val request = FakeRequest(POST, "/api/v0.1/users")
         .withHeaders("Content-Type" -> "application/json; charset=utf-8")
         .withJsonBody(Json.parse( """{ "login": "playchat",
                                     | "email": "playchat@playchat.com",
@@ -110,13 +110,13 @@ class UsersTest extends PlaySpecification with JSON {
     }
   }
 
-  "POST /api/v0.1/users/register " +
+  "POST /api/v0.1/users " +
     """{"login": "playchat",
        "email": "playchat@playchat.com",
        "password": "P1aycha7<3i"} """ +
     "must be 400 " in {
     running(FakeApplication()) {
-      val request = FakeRequest(POST, "/api/v0.1/users/register")
+      val request = FakeRequest(POST, "/api/v0.1/users")
         .withJsonBody(Json.parse( """{ "login": "playchat",
                                     | "email": "playchat@playchat.com",
                                     | "password": "P1aycha7<3i" }""".stripMargin))
@@ -133,13 +133,13 @@ class UsersTest extends PlaySpecification with JSON {
     }
   }
 
-  "POST /api/v0.1/users/register " +
+  "POST /api/v0.1/users " +
     """{"login": "play",
        "email": "playchat@playchat.com",
        "password": "P1aycha7<3i"} """ +
     "must be 400" in {
     running(FakeApplication()) {
-      val request = FakeRequest(POST, "/api/v0.1/users/register")
+      val request = FakeRequest(POST, "/api/v0.1/users")
         .withHeaders("Content-Type" -> "application/json; charset=utf-8")
         .withJsonBody(Json.parse( """ { "login": "play",
                                     | "email": "playchat@playchat.com",
@@ -156,13 +156,13 @@ class UsersTest extends PlaySpecification with JSON {
     }
   }
 
-  "POST /api/v0.1/users/register " +
+  "POST /api/v0.1/users " +
     """{"login": "playchat",
        "email": "playchat@playchat.co",
        "password": "P1aycha7<3i"} """ +
     "must be 400" in {
     running(FakeApplication()) {
-      val request = FakeRequest(POST, "/api/v0.1/users/register")
+      val request = FakeRequest(POST, "/api/v0.1/users")
         .withHeaders("Content-Type" -> "application/json; charset=utf-8")
         .withJsonBody(Json.parse( """ { "login": "playchat",
                                     | "email": "playchat@playchat.co",
@@ -179,13 +179,13 @@ class UsersTest extends PlaySpecification with JSON {
     }
   }
 
-  "POST /api/v0.1/users/register " +
+  "POST /api/v0.1/users " +
     """{"login": "a",
        "email": "a@a.com",
        "password": "12345678"} """ +
     "must be 201" in {
     running(FakeApplication()) {
-      val request = FakeRequest(POST, "/api/v0.1/users/register")
+      val request = FakeRequest(POST, "/api/v0.1/users")
         .withHeaders("Content-Type" -> "application/json; charset=utf-8")
         .withJsonBody(Json.parse( """ { "login": "a",
                                     | "email": "a@a.com",
@@ -199,13 +199,13 @@ class UsersTest extends PlaySpecification with JSON {
     }
   }
 
-  "POST /api/v0.1/users/register " +
+  "POST /api/v0.1/users " +
     """{"login": "",
        "email": "",
        "password": ""} """ +
     "must be 400" in {
     running(FakeApplication()) {
-      val request = FakeRequest(POST, "/api/v0.1/users/register")
+      val request = FakeRequest(POST, "/api/v0.1/users")
         .withHeaders("Content-Type" -> "application/json; charset=utf-8")
         .withJsonBody(Json.parse( """ { "login": "",
                                     | "email": "",
@@ -225,11 +225,11 @@ class UsersTest extends PlaySpecification with JSON {
     }
   }
 
-  "POST /api/v0.1/users/register " +
+  "POST /api/v0.1/users " +
     """{} """ +
     "must be 400" in {
     running(FakeApplication()) {
-      val request = FakeRequest(POST, "/api/v0.1/users/register")
+      val request = FakeRequest(POST, "/api/v0.1/users")
         .withHeaders("Content-Type" -> "application/json; charset=utf-8")
         .withJsonBody(Json.parse( """ {} """.stripMargin))
       val response = route(request)
