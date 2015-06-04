@@ -1,6 +1,6 @@
 # PlayChat API (Under construction) #
 
-A REST API for the simple web chat application. v0.1.
+A RESTful API for the simple web chat application.
 
 Check [wiki](https://github.com/KasonChan/play-chat-api/wiki) for more 
 information.
