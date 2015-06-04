@@ -41,7 +41,7 @@ object Rooms extends Controller with MongoController with JSON with RoomValidati
     // Perform the query and get a cursor of JsObject
     val cursor: Cursor[JsObject] = roomsCollection
       .find(q)
-      .sort(Json.obj("login" -> 1))
+      .sort(Json.obj("login" -> 1, "created_at" -> 1))
       .cursor[JsObject]
 
     // Gather all the JsObjects in a Seq
@@ -386,8 +386,6 @@ object Rooms extends Controller with MongoController with JSON with RoomValidati
 
   /**
    * Find all rooms by username which are public
-   * List all the rooms in the database that contains the username which are
-   * public
    * Return Some(rooms) if there are rooms found
    * Otherwise return None
    * @param user String
@@ -421,6 +419,50 @@ object Rooms extends Controller with MongoController with JSON with RoomValidati
    */
   def find(user: String): Action[AnyContent] = Action.async {
     val queryResult: Future[Option[JsValue]] = findByUserAndPublic(user)
+
+    queryResult.map {
+      case Some(rooms: JsValue) =>
+        val response: JsValue = rooms
+        Logger.info(response.toString())
+        Ok(prettify(response)).as("application/json; charset=utf-8")
+      case None =>
+        val response = Json.obj("messages" -> Json.arr("Not found"))
+        Logger.info(response.toString())
+        NotFound(prettify(response)).as("application/json; charset=utf-8")
+    }
+  }
+
+  /**
+   * Find all rooms that are public
+   * Return Some(rooms) if there are rooms found
+   * Otherwise return None
+   * @return Future[Option[JsValue]]
+   */
+  def findByPublic: Future[Option[JsValue]] = {
+    // Execute queryFind function to access the database to find the login and
+    // password
+    val q = Json.obj(
+      "privacy" -> "public"
+    )
+    val futureJsValue: Future[JsValue] = queryFind(q)
+
+    futureJsValue.map { jsValue =>
+      // Execute extractRooms to extract the room from the query result
+      val js: Option[JsValue] = extractRooms(jsValue)
+
+      js match {
+        case Some(rooms) => Some(rooms)
+        case None => None
+      }
+    }
+  }
+
+  /**
+   * Find all public rooms
+   * @return Action[AnyContent]
+   */
+  def findAll: Action[AnyContent] = Action.async {
+    val queryResult: Future[Option[JsValue]] = findByPublic
 
     queryResult.map {
       case Some(rooms: JsValue) =>

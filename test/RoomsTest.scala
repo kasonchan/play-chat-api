@@ -13,11 +13,14 @@ import scala.concurrent.duration._
 class RoomsTest extends PlaySpecification with JSON {
   val timeout: FiniteDuration = 10.seconds
 
-  "GET /api/v0.1/rooms must be None" in {
+  "GET /api/v0.1/rooms must be 200" in {
     running(FakeApplication()) {
       val request = FakeRequest(GET, "/api/v0.1/rooms")
       val response = route(request)
-      response must beNone
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+
+      result.header.status mustEqual 200
     }
   }
 
@@ -56,9 +59,9 @@ class RoomsTest extends PlaySpecification with JSON {
     }
   }
 
-  "GET /api/v0.1/users/nobody/rooms must be 404" in {
+  "GET /api/v0.1/users/b/rooms must be 404" in {
     running(FakeApplication()) {
-      val request = FakeRequest(GET, "/api/v0.1/users/nobody/rooms")
+      val request = FakeRequest(GET, "/api/v0.1/users/b/rooms")
       val response = route(request)
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)

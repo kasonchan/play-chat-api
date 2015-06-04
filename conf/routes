@@ -32,6 +32,9 @@ GET         /api/v0.1/user/rooms                   controllers.Rooms.getRooms
 # Get public rooms for the specified user
 GET         /api/v0.1/users/:username/rooms        controllers.Rooms.find(username)
 
+# Get all public rooms
+GET         /api/v0.1/rooms                        controllers.Rooms.findAll
+
 # Create a new room for the authenticated user
 POST        /api/v0.1/user/rooms                   controllers.Rooms.create
 
