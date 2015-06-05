@@ -15,7 +15,9 @@ object Application extends Controller with MongoController with JSON {
    * @return Action[AnyContent]
    */
   def root: Action[AnyContent] = Action.async {
-    val response: JsValue = Json.obj("user_url" -> "/api/v0.1/users/{user}")
+    val response: JsValue =
+      Json.obj("current_user_url" -> "/api/v0.1/user",
+      "user_url" -> "/api/v0.1/users/{user}")
     Future.successful(Ok(prettify(response)).as("application/json; charset=utf-8"))
   }
 
