@@ -108,6 +108,24 @@ trait UserValidation {
   }
 
   /**
+   * Check location
+   * Return None if the location is valid
+   * Otherwise return Some with error message
+   * @param location
+   * @return
+   */
+  def checkLocation(location: Option[String]): Option[String] = {
+    location match {
+      case Some(l) =>
+        if (l.length > 100)
+        Some("Location must be at most 100 characters")
+      else
+        None
+      case None => Some("Location is not found")
+    }
+  }
+
+  /**
    * Validate user
    * Call checkLogin, checkEmail and checkPassword functions to check the user's
    * information

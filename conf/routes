@@ -23,6 +23,9 @@ GET         /api/v0.1/users                        controllers.Users.findAll
 # Register a new user
 POST        /api/v0.1/users                        controllers.Users.create
 
+# Update the authenticated user
+PUT         /api/v0.1/user                         controllers.Users.update
+
 # ~~~~
 # Rooms
 # ~~~~
