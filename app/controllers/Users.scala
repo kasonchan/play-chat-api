@@ -16,7 +16,6 @@ import validations.UserValidation
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 
 /**
  * Created by kasonchan on 5/20/15.
@@ -191,7 +190,6 @@ object Users extends Controller with MongoController with JSON with UserValidati
       futureJsValue.map { jsValue =>
         // Execute extractUser to extract the user from the query result
         val js: Option[JsValue] = extractUser(jsValue)
-        println("ExtractUser: " + js.toString())
 
         // If user is found, return true
         // Otherwise return false
@@ -505,24 +503,24 @@ object Users extends Controller with MongoController with JSON with UserValidati
     getAuthorized(authorization) match {
       case Some(decoded: Array[String]) =>
         // Valid authentication
-
         try {
           val authorizedFuture: Future[Option[JsValue]] =
             findByLoginAndPassword(decoded(0).toString, decoded(1).toString)
 
           authorizedFuture.map {
+            // Valid user
             case Some(user) =>
               val location = (request.body \ "location").asOpt[String]
 
               checkLocation(location) match {
-                case Some(l) =>
+                case Left(e) =>
                   // Invalid location
-                  val response: JsValue = Json.obj("messages" -> Json.arr(l))
+                  val response: JsValue = Json.obj("messages" -> Json.arr(e))
                   Logger.info(response.toString())
                   BadRequest(prettify(response)).as("application/json; charset=utf-8")
-                case None =>
+                case Right(l) =>
                   // Valid location
-                  val update = Json.obj("location" -> location,
+                  val update = Json.obj("location" -> l,
                     "updated_at" -> System.currentTimeMillis())
                   val result = queryUpdate(decoded(0), update)
 
@@ -538,6 +536,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
                   Ok(prettify(user)).as("application/json; charset=utf-8")
               }
             case None =>
+              // Invalid user
               val response = Json.obj("messages" -> Json.arr("Bad credentials"))
               Logger.info(response.toString())
               Unauthorized(prettify(response)).as("application/json; charset=utf-8")

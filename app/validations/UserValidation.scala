@@ -114,14 +114,14 @@ trait UserValidation {
    * @param location
    * @return
    */
-  def checkLocation(location: Option[String]): Option[String] = {
+  def checkLocation(location: Option[String]): Either[String, String] = {
     location match {
       case Some(l) =>
         if (l.length > 100)
-        Some("Location must be at most 100 characters")
-      else
-        None
-      case None => Some("Location is not found")
+          Left("Location must be at most 100 characters") // None
+        else
+          Right(l) // Some
+      case None => Left("Location is not found") // None
     }
   }
 
