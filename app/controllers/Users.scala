@@ -52,7 +52,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
     // Otherwise, return the Seq in Json format
     futureUsersList.map { users =>
       if (users.isEmpty) {
-        Json.obj("messages" -> Json.arr("Not found :("))
+        Json.obj("messages" -> Json.arr("Not found"))
       }
       else {
         Json.toJson(users)
@@ -180,6 +180,15 @@ object Users extends Controller with MongoController with JSON with UserValidati
     }
   }
 
+  /**
+   * Find users by logins
+   * Find all the users by login to validate they are registered
+   * Check every users in the sequence
+   * Return None if all users are valid
+   * Otherwiser return invalid users error messages
+   * @param users Seq[String]
+   * @return Future[Option[String]]
+   */
   def findByLogins(users: Seq[String]): Future[Option[String]] = {
     // Execute queryFind function to access the database to find the login
     val resultSeq: Seq[Future[Option[JsValue]]] = users.map { user =>

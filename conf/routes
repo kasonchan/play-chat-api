@@ -6,40 +6,56 @@
 # Root
 # ~~~~
 # Get the root
-GET         /api/v0.1                              controllers.Application.root
+GET         /api/v0.1                                 controllers.Application.root
 
 # ~~~~
 # Users
 # ~~~~
 # Get a single user
-GET         /api/v0.1/users/:username              controllers.Users.find(username)
+GET         /api/v0.1/users/:username                 controllers.Users.find(username)
 
 # Get the authenticated user
-GET         /api/v0.1/user                         controllers.Users.getAuthUser
+GET         /api/v0.1/user                            controllers.Users.getAuthUser
 
 # Get all users
-GET         /api/v0.1/users                        controllers.Users.findAll
+GET         /api/v0.1/users                           controllers.Users.findAll
 
 # Register a new user
-POST        /api/v0.1/users                        controllers.Users.create
+POST        /api/v0.1/users                           controllers.Users.create
 
 # Update the authenticated user
-PUT         /api/v0.1/user                         controllers.Users.update
+PUT         /api/v0.1/user                            controllers.Users.update
 
 # ~~~~
 # Rooms
 # ~~~~
 # Get all rooms for the authenticated user
-GET         /api/v0.1/user/rooms                   controllers.Rooms.getRooms
+GET         /api/v0.1/user/rooms                      controllers.Rooms.getRooms
 
 # Get public rooms for the specified user
-GET         /api/v0.1/users/:username/rooms        controllers.Rooms.find(username)
+GET         /api/v0.1/users/:username/rooms           controllers.Rooms.find(username)
 
 # Get all public rooms
-GET         /api/v0.1/rooms                        controllers.Rooms.findAll
+GET         /api/v0.1/rooms                           controllers.Rooms.findAll
 
 # Create a new room for the authenticated user
-POST        /api/v0.1/user/rooms                   controllers.Rooms.create
+POST        /api/v0.1/user/rooms                      controllers.Rooms.create
+
+# Update the room for the authenticated user
+#PUT         /api/v0.1/user/room
+
+
+# ~~~~
+# Messages
+# ~~~~
+# Get all messages for the authenticated user in the specific room
+#POST         /api/v0.1/users/room/messages          controllers.Messages.getMessages
+
+# Get all messages owned by the authenticated user
+GET         /api/v0.1/users/:username/messages        controllers.Messages.find(username)
+
+# Create a new message for the authenticated user
+#POST        /api/v0.1/user/messages                controllers.Messages.create
 
 # Map static resources from the /public folder to the /assets URL path
-GET         /assets/*file                          controllers.Assets.at(path="/public", file)
+GET         /assets/*file                             controllers.Assets.at(path="/public", file)
