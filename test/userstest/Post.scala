@@ -15,14 +15,14 @@ object Post extends PlaySpecification with JSON {
   val timeout: FiniteDuration = 10.seconds
 
   "POST /api/v0.1/users " +
-    """{"login": "z",
-       "email": "z@z.com",
+    """{"login": "y",
+       "email": "y@y.com",
        "password": "12345678"} """ +
     "must be 201 Created" in {
     running(FakeApplication()) {
       val request = FakeRequest(POST, "/api/v0.1/users")
-        .withJsonBody(Json.parse( """{ "login": "z",
-                                    | "email": "z@z.com",
+        .withJsonBody(Json.parse( """{ "login": "y",
+                                    | "email": "y@y.com",
                                     | "password": "12345678" }""".stripMargin))
       val response = route(request)
       Thread.sleep(5000)

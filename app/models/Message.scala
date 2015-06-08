@@ -14,10 +14,10 @@ case class RoomUser(user: String,
 
 /**
  * Coordinates
- * @param Lang Double
  * @param Long Double
+ * @param Lang Double
  */
-case class Coordinates(Lang: Double, Long: Double)
+case class Coordinates(Long: Double, Lang: Double)
 
 /**
  * Message
