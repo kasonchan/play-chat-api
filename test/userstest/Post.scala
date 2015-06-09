@@ -35,7 +35,6 @@ object Post extends PlaySpecification with JSON {
       (json \ "type").as[String] mustEqual "user"
       (json \ "email").as[String] mustEqual "y@y.com"
       (json \ "location").as[String] mustEqual ""
-      (json \ "password").as[String] mustEqual "12345678"
       (json \ "confirmed").as[Boolean] mustEqual false
       (json \ "created_at").as[Long] mustEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 201
