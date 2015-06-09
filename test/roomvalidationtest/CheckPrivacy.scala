@@ -8,20 +8,20 @@ import validations.RoomValidation
  */
 object CheckPrivacy extends PlaySpecification with RoomValidation {
 
-  "checkPrivacy(Some(\"public\")) mustEqual None" in {
-    checkPrivacy(Some("public")) mustEqual None
+  "checkPrivacy(Some(\"public\")) mustEqual Right(\"public\")" in {
+    checkPrivacy(Some("public")) mustEqual Right("public")
   }
 
-  "checkPrivacy(Some(\"private\")) mustEqual None" in {
-    checkPrivacy(Some("private")) mustEqual None
+  "checkPrivacy(Some(\"private\")) mustEqual Right(\"private\")" in {
+    checkPrivacy(Some("private")) mustEqual Right("private")
   }
 
-  "checkPrivacy(None) mustEqual Some(\"Privacy is required\")" in {
-    checkPrivacy(None) mustEqual Some("Privacy is required")
+  "checkPrivacy(None) mustEqual Right(\"No privacy is found\")" in {
+    checkPrivacy(None) mustEqual Right("No privacy is found")
   }
 
-  "checkPrivacy(Some(\"test\")) mustEqual Some(\"Invalid privacy\")" in {
-    checkPrivacy(Some("test")) mustEqual Some("Invalid privacy")
+  "checkPrivacy(Some(\"test\")) mustEqual Left(\"Invalid privacy\")" in {
+    checkPrivacy(Some("test")) mustEqual Left("Invalid privacy")
   }
 
 }

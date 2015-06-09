@@ -10,6 +10,7 @@ import play.api.mvc._
 import play.modules.reactivemongo.MongoController
 import play.modules.reactivemongo.json.collection.JSONCollection
 import reactivemongo.api.Cursor
+import reactivemongo.core.commands.LastError
 import validations.RoomValidation
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -473,6 +474,128 @@ object Rooms extends Controller with MongoController with JSON with RoomValidati
         val response = Json.obj("messages" -> Json.arr("Not found"))
         Logger.info(response.toString())
         NotFound(prettify(response)).as("application/json; charset=utf-8")
+    }
+  }
+
+  /**
+   * Update query
+   * Access the database and update the value
+   * @param t JsValue
+   * @param u JsValue
+   * @return Future[Option[String]]
+   */
+  def queryUpdate(t: Seq[String], u: JsValue): Future[Option[String]] = {
+    val target = Json.obj("users" -> t)
+    val update = Json.obj("$set" -> u)
+
+    val cursor: Future[LastError] =
+      roomsCollection.update(target, update, multi = true)
+
+    cursor.map { l =>
+      l.errMsg match {
+        case Some(e) => Some(e)
+        case None => None
+      }
+    }
+  }
+
+  /**
+   * Update
+   * Access the database and update the field
+   * @return Action[JsValue]
+   */
+  def update: Action[JsValue] = Action.async(parse.json) { request =>
+    // Get the authorization header
+    val authorization: Option[String] = request.headers.get(AUTHORIZATION)
+
+    // Check for authentication
+    getAuthorized(authorization) match {
+      case Some(decoded: Array[String]) =>
+        // Valid authentication
+
+        try {
+          val authorizedFuture: Future[Option[JsValue]] =
+            findByLoginAndPassword(decoded(0).toString, decoded(1).toString)
+
+          val users: Seq[String] = (request.body \ "users").asOpt[Seq[String]].getOrElse(Seq())
+
+          // Sort the users
+          val sortedUsers = users.sortWith(_ < _)
+          // Check if the room of users is already existed
+          val roomFuture: Future[Option[JsValue]] = findByUsers(sortedUsers)
+
+          // Check all the users are valid
+          val usersFuture: Future[Option[String]] = findByLogins(sortedUsers)
+
+          authorizedFuture.zip(roomFuture).zip(usersFuture).map {
+            case ((Some(a), Some(r)), None) =>
+              // Valid auth, room exists, valid users
+              val login: Option[String] = (request.body \ "login").asOpt[String]
+              val privacy: Option[String] = (request.body \ "privacy").asOpt[String]
+
+              val checkedLogin: Either[String, String] = checkLogin(login)
+              val checkedPrivacy: Either[String, String] = checkPrivacy(privacy)
+
+              (checkedLogin, checkedPrivacy) match {
+                case (Left(l), Left(p)) =>
+                  val response = Json.obj("messages" -> Json.arr(l, p))
+                  Logger.info(response.toString)
+                  BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                case (_, Left(p)) =>
+                  val response = Json.obj("messages" -> Json.arr(p))
+                  Logger.info(response.toString)
+                  BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                case (Left(l), _) =>
+                  val response = Json.obj("messages" -> Json.arr(l))
+                  Logger.info(response.toString)
+                  BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                case (Right(l), Right(p)) =>
+                  val l = login.getOrElse("")
+                  val p = privacy.getOrElse("private")
+
+                  val update = Json.obj("login" -> l,
+                    "privacy" -> p,
+                    "updated_at" -> System.currentTimeMillis())
+                  val resultFuture: Future[Option[String]] = queryUpdate(sortedUsers, update)
+
+                  resultFuture map {
+                    case Some(e) =>
+                      val response: JsValue = Json.obj("messages" -> Json.arr("Internal server error"))
+                      Logger.error(e.toString)
+                      InternalServerError(prettify(response)).as("application/json; charset=utf-8")
+                    case None =>
+                      findByUsers(sortedUsers)
+                  }
+
+                  Logger.info(r.toString)
+                  Ok(prettify(r)).as("application/json; charset=utf-8")
+              }
+            case ((Some(a), Some(r)), Some(u)) =>
+              // Valid auth, room exists, invalid users
+              val response = Json.obj("messages" -> Json.arr(u))
+              Logger.info(response.toString)
+              BadRequest(prettify(response)).as("application/json; charset=utf-8")
+            case ((Some(a), None), _) =>
+              // Room is not found
+              val response = Json.obj("messages" -> Json.arr("Not found"))
+              Logger.info(response.toString)
+              NotFound(prettify(response)).as("application/json; charset=utf-8")
+            case ((None, _), _) =>
+              // Bad credentials
+              val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+              Logger.info(response.toString)
+              Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+          }
+        } catch {
+          case e: Exception =>
+            val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+            Logger.info(response.toString)
+            Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
+        }
+      case (jv: JsValue) =>
+        // Unauthorized bad credentials or requires authentication
+        Logger.info(jv.toString)
+        Future.successful(Unauthorized(prettify(jv)).as("application/json; charset=utf-8"))
     }
   }
 

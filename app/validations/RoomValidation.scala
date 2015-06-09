@@ -9,21 +9,19 @@ trait RoomValidation {
 
   /**
    * Check login
-   * Valid length range: 1 - 50
+   * Valid length range: 0 - 50
    * Return None if login is valid
    * Otherwise return Some error message
    * @param login Option[String]
    * @return Option[String]
    */
-  def checkLogin(login: Option[String]): Option[String] = {
+  def checkLogin(login: Option[String]): Either[String, String] = {
     login match {
       case Some(l: String) =>
-        if ((l.length < 1) || (l.length > 50))
-          Some("Username must be at least 1 character and at most 50 characters")
-        else
-          None
-      case None => Some("A login is required")
-      case _ => Some("Invalid login")
+        if (l.length > 50) Left("Login must be at most 50 characters")
+        else Right(l)
+      case None => Right("No login is found")
+      case _ => Left("Invalid login")
     }
   }
 
@@ -55,12 +53,12 @@ trait RoomValidation {
    * @param privacy
    * @return
    */
-  def checkPrivacy(privacy: Option[String]): Option[String] = {
+  def checkPrivacy(privacy: Option[String]): Either[String, String] = {
     privacy match {
-      case Some("private") => None
-      case Some("public") => None
-      case None => Some("Privacy is required")
-      case _ => Some("Invalid privacy")
+      case Some("private") => Right("private")
+      case Some("public") => Right("public")
+      case None => Right("No privacy is found")
+      case _ => Left("Invalid privacy")
     }
   }
 

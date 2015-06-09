@@ -45,8 +45,7 @@ GET         /api/v0.1/rooms                           controllers.Rooms.findAll
 POST        /api/v0.1/user/rooms                      controllers.Rooms.create
 
 # Update the room for the authenticated user
-#PUT         /api/v0.1/user/room
-
+PUT         /api/v0.1/user/room                       controllers.Rooms.update
 
 # ~~~~
 # Messages
