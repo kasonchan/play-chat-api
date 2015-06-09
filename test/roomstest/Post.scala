@@ -1,7 +1,7 @@
 package roomstest
 
 import json.JSON
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, Json}
 import play.api.test.{FakeApplication, FakeRequest, PlaySpecification}
 
 import scala.concurrent._
@@ -26,6 +26,12 @@ object Post extends PlaySpecification with JSON {
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
 
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "login").as[String] mustEqual ""
+      (json \ "avatar_url").as[String] mustEqual ""
+      (json \ "users").as[JsArray] mustEqual Json.arr("c", "d")
+      (json \ "privacy").as[String] mustEqual "private"
+      (json \ "created_at").as[Long] mustEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 201
     }
   }

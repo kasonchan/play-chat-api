@@ -11,6 +11,7 @@ package models
  * @param user_type String
  * @param email String
  * @param location String
+ * @param password String
  * @param confirmed Boolean
  * @param created_at Long
  * @param updated_at Long
@@ -20,6 +21,7 @@ case class User(login: String,
                 user_type: String,
                 email: String,
                 location: String,
+                password: String,
                 confirmed: Boolean,
                 created_at: Long,
                 updated_at: Long)

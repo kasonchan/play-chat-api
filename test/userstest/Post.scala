@@ -29,6 +29,15 @@ object Post extends PlaySpecification with JSON {
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
 
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "login").as[String] mustEqual "y"
+      (json \ "avatar_url").as[String] mustEqual ""
+      (json \ "type").as[String] mustEqual "user"
+      (json \ "email").as[String] mustEqual "y@y.com"
+      (json \ "location").as[String] mustEqual ""
+      (json \ "password").as[String] mustEqual "12345678"
+      (json \ "confirmed").as[Boolean] mustEqual false
+      (json \ "created_at").as[Long] mustEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 201
     }
   }
