@@ -9,15 +9,15 @@ import validations.UserValidation
 object CheckConfirmed extends PlaySpecification with UserValidation {
 
   "checkConfirmed(Some(true)) mustEqual Some(\"Default to false\")" in {
-    checkConfirmed(Some(true)) mustEqual Some("Default to false")
+    checkConfirmed(Some(true)) mustEqual None
   }
 
   "checkConfirmed(Some(false)) mustEqual None" in {
     checkConfirmed(Some(false)) mustEqual None
   }
 
-  "checkConfirmed(None) mustEqual Some(\"Confirmed is needed\")" in {
-    checkConfirmed(None) mustEqual Some("Confirmed is needed")
+  "checkConfirmed(None) mustEqual Some(\"Invalid confirmed\")" in {
+    checkConfirmed(None) mustEqual Some("Invalid confirmed")
   }
 
 }
