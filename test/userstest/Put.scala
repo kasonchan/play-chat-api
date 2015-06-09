@@ -14,6 +14,9 @@ object Put extends PlaySpecification with JSON {
 
   val timeout: FiniteDuration = 10.seconds
 
+  /**
+   * Tests with location
+   */
   "PUT /api/v0.1/user " +
     """{"location": ""} """ +
     "must be 200 Ok" in {
@@ -25,7 +28,9 @@ object Put extends PlaySpecification with JSON {
       Thread.sleep(5000)
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
+      val location = (Json.parse(contentAsString(response.get)) \ "location").as[String]
 
+      location mustEqual "a"
       result.header.status mustEqual 200
     }
   }
@@ -164,7 +169,156 @@ object Put extends PlaySpecification with JSON {
       Thread.sleep(5000)
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
+      val location = (Json.parse(contentAsString(response.get)) \ "location").as[String]
 
+      location mustEqual ""
+      result.header.status mustEqual 200
+    }
+  }
+
+  /**
+   * Tests with confirmed
+   */
+  "PUT /api/v0.1/users/b " +
+    """{"confirmed": "Invalid"} """ +
+    "must be 400 Bad request Confirmed is not found" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/users/b")
+        .withHeaders(("Authorization", "Basic cGxheWNoYXRhZG1pbjpQMWF5Y2hhN2FkbTFuPDNp"))
+        .withJsonBody(Json.parse( """{ "confirmed": "Invalid" }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" -> Json.arr("Invalid confirmed"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 400
+    }
+  }
+
+  "PUT /api/v0.1/users/z " +
+    """{"confirmed": true} """ +
+    "must be 404 Not found" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/users/z")
+        .withHeaders(("Authorization", "Basic cGxheWNoYXRhZG1pbjpQMWF5Y2hhN2FkbTFuPDNp"))
+        .withJsonBody(Json.parse( """{ "confirmed": true }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" -> Json.arr("Not found"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 404
+    }
+  }
+
+  "PUT /api/v0.1/users/b " +
+    """{"confirmed": true } """ +
+    "must be 401 Unauthorized Bad credentials" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/users/b")
+        .withHeaders(("Authorization", "Basic cGxheWNoYXRhZG1p"))
+        .withJsonBody(Json.parse( """{ "confirmed": true }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" -> Json.arr("Bad credentials"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 401
+    }
+  }
+
+  "PUT /api/v0.1/users/b " +
+    """{"confirmed": true } """ +
+    "must be 401 Unauthorized Requires authentication " in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/users/b")
+        .withJsonBody(Json.parse( """{ "confirmed": true }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" -> Json.arr("Requires authentication"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 401
+    }
+  }
+
+  "PUT /api/v0.1/users/b " +
+    "must be 400 Bad request Expecting text/json or application/json body" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/users/b")
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" -> Json.arr("Expecting text/json or application/json body"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 400
+    }
+  }
+
+  "PUT /api/v0.1/users/b " +
+    "must be 400 Bad request Expecting text/json or application/json body" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/users/b")
+        .withHeaders(("Authorization", "Basic cGxheWNoYXRhZG1pbjpQMWF5Y2hhN2FkbTFuPDNp"))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse: JsValue =
+        Json.obj("messages" -> Json.arr("Expecting text/json or application/json body"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 400
+    }
+  }
+
+  "PUT /api/v0.1/users/b " +
+    """{"confirmed": false} """ +
+    "must be 200 Ok" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/users/b")
+        .withHeaders(("Authorization", "Basic cGxheWNoYXRhZG1pbjpQMWF5Y2hhN2FkbTFuPDNp"))
+        .withJsonBody(Json.parse( """{ "confirmed": false }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val confirmed = (Json.parse(contentAsString(response.get)) \ "confirmed").as[Boolean]
+
+      confirmed mustEqual true
+      result.header.status mustEqual 200
+    }
+  }
+
+  "PUT /api/v0.1/users/b " +
+    """{"confirmed": true} """ +
+    "must be 200 Ok" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/users/b")
+        .withHeaders(("Authorization", "Basic cGxheWNoYXRhZG1pbjpQMWF5Y2hhN2FkbTFuPDNp"))
+        .withJsonBody(Json.parse( """{ "confirmed": true }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val confirmed = (Json.parse(contentAsString(response.get)) \ "confirmed").as[Boolean]
+
+      confirmed mustEqual false
       result.header.status mustEqual 200
     }
   }

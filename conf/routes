@@ -26,6 +26,9 @@ POST        /api/v0.1/users                           controllers.Users.create
 # Update the authenticated user
 PUT         /api/v0.1/user                            controllers.Users.update
 
+# Update confirmed for a single user requires admin credentials
+PUT         /api/v0.1/users/:username                 controllers.Users.updateConfirmed(username)
+
 # ~~~~
 # Rooms
 # ~~~~

@@ -145,11 +145,11 @@ object Users extends Controller with MongoController with JSON with UserValidati
 
     queryResult.map {
       case Some(user: JsValue) =>
-        Logger.info(user.toString())
+        Logger.info(user.toString)
         Ok(prettify(user)).as("application/json; charset=utf-8")
       case None =>
         val response = Json.obj("messages" -> Json.arr("Not found"))
-        Logger.info(response.toString())
+        Logger.info(response.toString)
         NotFound(prettify(response)).as("application/json; charset=utf-8")
     }
   }
@@ -280,7 +280,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
 
   /**
    * Find all users
-   * List all the users in the database
+   * List all the users who type is user only in the database
    * Return Ok if there are users found
    * Otherwise return NotFound
    * @return
@@ -288,7 +288,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
   def findAll: Action[AnyContent] = Action.async {
     // Execute queryFind function to access the database to find the login and
     // password
-    val q = Json.obj()
+    val q = Json.obj("type" -> "user")
     val futureJsValue: Future[JsValue] = queryFind(q)
 
     futureJsValue.map {
@@ -298,10 +298,10 @@ object Users extends Controller with MongoController with JSON with UserValidati
 
         js match {
           case Some(users) =>
-            Logger.info(users.toString())
+            Logger.info(users.toString)
             Ok(prettify(users)).as("application/json; charset=utf-8")
           case None =>
-            Logger.info(jsValue.toString())
+            Logger.info(jsValue.toString)
             NotFound(prettify(jsValue)).as("application/json; charset=utf-8")
         }
     }
@@ -359,21 +359,21 @@ object Users extends Controller with MongoController with JSON with UserValidati
 
           authorizedFuture.map {
             case Some(user) =>
-              Logger.info(user.toString())
+              Logger.info(user.toString)
               Ok(prettify(user)).as("application/json; charset=utf-8")
             case None =>
               val response = Json.obj("messages" -> Json.arr("Bad credentials"))
-              Logger.info(response.toString())
+              Logger.info(response.toString)
               Unauthorized(prettify(response)).as("application/json; charset=utf-8")
           }
         } catch {
           case e: Exception =>
             val response = Json.obj("messages" -> Json.arr("Bad credentials"))
-            Logger.info(response.toString())
+            Logger.info(response.toString)
             Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
         }
       case (jv: JsValue) =>
-        Logger.info(jv.toString())
+        Logger.info(jv.toString)
         Future.successful(Unauthorized(prettify(jv)).as("application/json; charset=utf-8"))
     }
   }
@@ -415,7 +415,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
           case Some(messages: JsValue) =>
             // Invalid input
             val response: JsValue = Json.obj("messages" -> messages)
-            Logger.info(response.toString())
+            Logger.info(response.toString)
             Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
           case None =>
             // Valid input
@@ -434,17 +434,17 @@ object Users extends Controller with MongoController with JSON with UserValidati
                 val response: JsValue =
                   Json.obj("messages" -> Json.arr("Login is already registered",
                     "Email is already registered"))
-                Logger.info(response.toString())
+                Logger.info(response.toString)
                 BadRequest(prettify(response)).as("application/json; charset=utf-8")
               case (Some(lr: JsValue), None) =>
                 val response: JsValue =
                   Json.obj("messages" -> Json.arr("Login is already registered"))
-                Logger.info(response.toString())
+                Logger.info(response.toString)
                 BadRequest(prettify(response)).as("application/json; charset=utf-8")
               case (None, Some(er: JsValue)) =>
                 val response: JsValue =
                   Json.obj("messages" -> Json.arr("Email is already registered"))
-                Logger.info(response.toString())
+                Logger.info(response.toString)
                 BadRequest(prettify(response)).as("application/json; charset=utf-8")
               case (None, None) =>
                 // Create a new user
@@ -465,14 +465,14 @@ object Users extends Controller with MongoController with JSON with UserValidati
                   r => Created
                 }
                 val pu = userPrinting(user)
-                Logger.info(pu.toString())
+                Logger.info(pu.toString)
                 Status(201)(prettify(pu)).as("application/json; charset=utf-8")
             }
         }
       case None =>
         // Invalid json format
         val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
-        Logger.info(response.toString())
+        Logger.info(response.toString)
         Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
     }
   }
@@ -525,7 +525,7 @@ object Users extends Controller with MongoController with JSON with UserValidati
                 case Left(e) =>
                   // Invalid location
                   val response: JsValue = Json.obj("messages" -> Json.arr(e))
-                  Logger.info(response.toString())
+                  Logger.info(response.toString)
                   BadRequest(prettify(response)).as("application/json; charset=utf-8")
                 case Right(l) =>
                   // Valid location
@@ -536,24 +536,98 @@ object Users extends Controller with MongoController with JSON with UserValidati
                   result map {
                     case Some(e) =>
                       val response: JsValue = Json.obj("messages" -> Json.arr("Internal server error"))
-                      Logger.error(e.toString())
+                      Logger.error(e.toString)
                       InternalServerError(prettify(response)).as("application/json; charset=utf-8")
                     case None =>
                       find(decoded(0))
                   }
-                  Logger.info(user.toString())
+                  Logger.info(user.toString)
                   Ok(prettify(user)).as("application/json; charset=utf-8")
               }
             case None =>
               // Invalid user
               val response = Json.obj("messages" -> Json.arr("Bad credentials"))
-              Logger.info(response.toString())
+              Logger.info(response.toString)
               Unauthorized(prettify(response)).as("application/json; charset=utf-8")
           }
         } catch {
           case e: Exception =>
             val response = Json.obj("messages" -> Json.arr("Bad credentials"))
-            Logger.info(response.toString())
+            Logger.info(response.toString)
+            Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
+        }
+      case (jv: JsValue) =>
+        // Unauthorized bad credentials or requires authentication
+        Logger.info(jv.toString)
+        Future.successful(Unauthorized(prettify(jv)).as("application/json; charset=utf-8"))
+    }
+  }
+
+  /**
+   * Update confirmed
+   * Access the database and update the field
+   * @return Action[JsValue]
+   */
+  def updateConfirmed(user: String): Action[JsValue] = Action.async(parse.json) { request =>
+    // Get the authorization header
+    val authorization: Option[String] = request.headers.get(AUTHORIZATION)
+
+    // Check for authentication
+    getAuthorized(authorization) match {
+      case Some(decoded: Array[String]) =>
+        // Valid authentication
+        try {
+          if (decoded(0).toString == "playchatadmin") {
+            val authorizedFuture: Future[Option[JsValue]] =
+              findByLoginAndPassword(decoded(0).toString, decoded(1).toString)
+            val queryFuture: Future[Option[JsValue]] = findByLogin(user)
+
+            authorizedFuture zip queryFuture map {
+              // Valid admin and user
+              case (Some(a), Some(u)) =>
+                val confirmed = (request.body \ "confirmed").asOpt[Boolean]
+
+                checkConfirmed(confirmed) match {
+                  case Some(e: String) =>
+                    val response: JsValue = Json.obj("messages" -> Json.arr(e))
+                    Logger.info(e.toString)
+                    BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                  case None =>
+                    val update = Json.obj("confirmed" -> confirmed,
+                      "updated_at" -> System.currentTimeMillis())
+                    val result = queryUpdate(user, update)
+
+                    result map {
+                      case Some(e) =>
+                        val response: JsValue = Json.obj("messages" -> Json.arr("Internal server error"))
+                        Logger.error(e.toString)
+                        InternalServerError(prettify(response)).as("application/json; charset=utf-8")
+                      case None =>
+                        find(user)
+                    }
+                    Logger.info(u.toString)
+                    Ok(prettify(u)).as("application/json; charset=utf-8")
+                }
+              case (Some(a), None) =>
+                // Invalid user
+                val response = Json.obj("messages" -> Json.arr("Not found"))
+                Logger.info(response.toString)
+                NotFound(prettify(response)).as("application/json; charset=utf-8")
+              case (None, _) =>
+                // Invalid admin
+                val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                Logger.info(response.toString)
+                Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+            }
+          } else {
+            val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+            Logger.info(response.toString)
+            Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
+          }
+        } catch {
+          case e: Exception =>
+            val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+            Logger.info(response.toString)
             Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
         }
       case (jv: JsValue) =>

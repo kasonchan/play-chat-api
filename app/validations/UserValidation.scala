@@ -100,10 +100,10 @@ trait UserValidation {
   def checkConfirmed(confirmed: Option[Boolean]): Option[String] = {
     confirmed match {
       case Some(b: Boolean) => b match {
-        case true => Some("Default to false")
+        case true => None
         case false => None
       }
-      case None => Some("Confirmed is needed")
+      case None => Some("Invalid confirmed")
     }
   }
 
