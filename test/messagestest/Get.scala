@@ -71,10 +71,10 @@ object Get extends PlaySpecification with JSON {
     }
   }
 
-  "GET /api/v0.1/users/b/messages must be 404 Not found" in {
+  "GET /api/v0.1/users/c/messages must be 404 Not found" in {
     running(FakeApplication()) {
-      val request = FakeRequest(GET, "/api/v0.1/users/b/messages")
-        .withHeaders(("Authorization", "Basic YjoxMjM0NTY3OA=="))
+      val request = FakeRequest(GET, "/api/v0.1/users/c/messages")
+        .withHeaders(("Authorization", "Basic YzoxMjM0NTY3OA=="))
       val response = route(request)
       Thread.sleep(5000)
       response.isDefined mustEqual true

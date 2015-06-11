@@ -1,7 +1,7 @@
 package messagestest
 
 import json.JSON
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.test.{FakeApplication, FakeRequest, PlaySpecification}
 
 import scala.concurrent._
@@ -236,6 +236,30 @@ object Post extends PlaySpecification with JSON {
 
   "POST /api/v0.1/user/messages " +
     """{ "owner": "b",
+      | "users": [ "b", "c" ],
+      | "text": "Hi, this is B." } """.stripMargin +
+    "must be 404 Not found" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(POST, "/api/v0.1/user/messages")
+        .withHeaders(("Authorization", "Basic YjoxMjM0NTY3OA=="))
+        .withJsonBody(Json.parse(
+        """{ "owner": "b",
+          | "users": [ "b", "c" ],
+          | "text": "Hi, this is B." }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse = Json.obj("messages" ->
+        Json.arr("Not found"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 404
+    }
+  }
+
+  "POST /api/v0.1/user/messages " +
+    """{ "owner": "b",
       | "users": [ "a", "b" ],
       | "text": "Hi, this is B." } """.stripMargin +
     "must be 201 Created" in {
@@ -251,6 +275,44 @@ object Post extends PlaySpecification with JSON {
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
 
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "owner").as[String] mustEqual "b"
+      (json \ "users").as[JsArray] mustEqual
+        Json.arr(Json.obj("login" -> "a", "read" -> false),
+          Json.obj("login" -> "b", "read" -> true))
+      (json \ "text").as[String] mustEqual "Hi, this is B."
+      (json \ "coordinates").as[JsObject] mustEqual Json.obj("coordinates" -> Json.obj())
+      result.header.status mustEqual 201
+    }
+  }
+
+  "POST /api/v0.1/user/messages " +
+    """{ "owner": "a",
+      | "users": [ "a", "b" ],
+      | "text": "Hi, this is A with coords.",
+      | "coordinates": { "coordinates": [-34.397, 150.644] } } """.stripMargin +
+    "must be 201 Created" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(POST, "/api/v0.1/user/messages")
+        .withHeaders(("Authorization", "Basic YToxMjM0NTY3OA=="))
+        .withJsonBody(Json.parse(
+        """{ "owner": "a",
+          | "users": [ "a", "b" ],
+          | "text": "Hi, this is A with coords.",
+          | "coordinates": { "coordinates": [-34.397, 150.644] } }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "owner").as[String] mustEqual "a"
+      (json \ "users").as[JsArray] mustEqual
+        Json.arr(Json.obj("login" -> "a", "read" -> true),
+          Json.obj("login" -> "b", "read" -> false))
+      (json \ "text").as[String] mustEqual "Hi, this is A with coords."
+      (json \ "coordinates").as[JsObject] mustEqual
+        Json.obj("coordinates" -> Json.arr(-34.397, 150.644))
       result.header.status mustEqual 201
     }
   }
@@ -272,6 +334,13 @@ object Post extends PlaySpecification with JSON {
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
 
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "owner").as[String] mustEqual "a"
+      (json \ "users").as[JsArray] mustEqual
+        Json.arr(Json.obj("login" -> "a", "read" -> true),
+          Json.obj("login" -> "b", "read" -> false))
+      (json \ "text").as[String] mustEqual "Hi, this is A."
+      (json \ "coordinates").as[JsObject] mustEqual Json.obj("coordinates" -> Json.obj())
       result.header.status mustEqual 201
     }
   }

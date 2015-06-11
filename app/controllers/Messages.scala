@@ -231,7 +231,7 @@ object Messages extends Controller with MongoController with JSON with MessageVa
   def transformUsers(owner: String, users: Seq[String]): JsValue = {
     val usersArray: Seq[JsObject] = users.map { user =>
       if (user == owner) Json.obj("login" -> user, "read" -> true)
-      else Json.obj("users" -> user, "read" -> false)
+      else Json.obj("login" -> user, "read" -> false)
     }
 
     Json.toJson(usersArray)
@@ -290,7 +290,7 @@ object Messages extends Controller with MongoController with JSON with MessageVa
                     val users: Seq[String] = (tr \ "users").asOpt[Seq[String]].getOrElse(Seq())
                     val text: String = (tr \ "text").as[String]
                     val coordinates: JsValue =
-                      (request.body \ "coordinates").asOpt[JsObject]
+                      (request.body \ "coordinates").asOpt[JsValue]
                         .getOrElse(Json.obj("coordinates" -> Json.obj()))
 
                     // Sort the users
