@@ -10,7 +10,7 @@ import scala.concurrent.duration._
 /**
  * Created by ka-son on 6/7/15.
  */
-class Get extends PlaySpecification with JSON {
+object Get extends PlaySpecification with JSON {
 
   val timeout: FiniteDuration = 10.seconds
 

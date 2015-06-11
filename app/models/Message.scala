@@ -10,14 +10,14 @@ package models
  * @param read Boolean
  */
 case class RoomUser(user: String,
-                     read: Boolean)
+                    read: Boolean)
 
 /**
  * Coordinates
- * @param Long Double
- * @param Lang Double
+ * @param latitude Double
+ * @param longitude Double
  */
-case class Coordinates(Long: Double, Lang: Double)
+case class Coordinates(latitude: Double, longitude: Double)
 
 /**
  * Message

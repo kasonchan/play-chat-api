@@ -50,14 +50,14 @@ PUT         /api/v0.1/user/room                       controllers.Rooms.update
 # ~~~~
 # Messages
 # ~~~~
-# Get all messages for the authenticated user in the specific room
-#POST         /api/v0.1/users/room/messages          controllers.Messages.getMessages
-
 # Get all messages owned by the authenticated user
 GET         /api/v0.1/users/:username/messages        controllers.Messages.find(username)
 
+# Get all messages of the specific room for the authenticated user
+#POST        /api/v0.1/users/:username/messages        controllers.Messages.getMessages(username)
+
 # Create a new message for the authenticated user
-#POST        /api/v0.1/user/messages                controllers.Messages.create
+POST        /api/v0.1/user/messages                   controllers.Messages.create
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                             controllers.Assets.at(path="/public", file)

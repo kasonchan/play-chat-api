@@ -1,16 +1,18 @@
 package controllers
 
+import controllers.Rooms.findByUsers
 import controllers.Users.{findByLoginAndPassword, findByLogins}
 import json.JSON
 import org.apache.commons.codec.binary.Base64.decodeBase64
 import play.api.Logger
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import play.api.mvc._
 import play.modules.reactivemongo.MongoController
 import play.modules.reactivemongo.json.collection.JSONCollection
 import reactivemongo.api.Cursor
-import validations.RoomValidation
+import validations.MessageValidation
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -19,7 +21,7 @@ import scala.language.postfixOps
 /**
  * Created by ka-son on 6/7/15.
  */
-object Messages extends Controller with MongoController with JSON {
+object Messages extends Controller with MongoController with JSON with MessageValidation {
 
   /**
    * Messages collection
@@ -213,6 +215,148 @@ object Messages extends Controller with MongoController with JSON {
         }
       case (jv: JsValue) =>
         Logger.info(jv.toString())
+        Future.successful(Unauthorized(prettify(jv)).as("application/json; charset=utf-8"))
+    }
+  }
+
+  /**
+   * Transform users
+   * Add read to each user
+   * Add true if it is owner
+   * Add false otherwise
+   * @param owner String
+   * @param users Seq[String]
+   * @return JsValue
+   */
+  def transformUsers(owner: String, users: Seq[String]): JsValue = {
+    val usersArray: Seq[JsObject] = users.map { user =>
+      if (user == owner) Json.obj("login" -> user, "read" -> true)
+      else Json.obj("users" -> user, "read" -> false)
+    }
+
+    Json.toJson(usersArray)
+  }
+
+  /**
+   * Create a new message
+   * @return
+   */
+  def create: Action[JsValue] = Action.async(parse.json) { request =>
+    // Get the authorization header
+    val authorization: Option[String] = request.headers.get(AUTHORIZATION)
+
+    // Check for authentication
+    getAuthorized(authorization) match {
+      case Some(decoded: Array[String]) =>
+        // Valid authentication
+
+        val transformer: Reads[JsObject] = Reads.jsPickBranch[JsString](__ \ "owner") and
+          Reads.jsPickBranch[JsArray](__ \ "users") and
+          Reads.jsPickBranch[JsString](__ \ "text") reduce
+
+        // Transform the json format
+        val transformedResult: Option[JsValue] =
+          request.body.transform(transformer).map { tr =>
+            // Valid json format
+            Some(tr)
+          }.getOrElse {
+            // Invalid json format
+            None
+          }
+
+        transformedResult match {
+          case Some(tr: JsValue) =>
+            // Valid json format
+
+            // Check the individual users are registered
+            // Validate room
+            try {
+              val validatedMessage: Option[JsValue] = validateMessage(tr)
+
+              validatedMessage match {
+                case Some(s: JsValue) =>
+                  val response = Json.obj("messages" -> Json.arr(s))
+                  Logger.info(response.toString)
+                  Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
+                case None =>
+                  val owner: String = (tr \ "owner").as[String]
+
+                  if (decoded(0) == owner) {
+
+                    // Check if the user is authorized
+                    val authorizedFuture: Future[Option[JsValue]] =
+                      findByLoginAndPassword(decoded(0).toString(), decoded(1).toString())
+
+                    val users: Seq[String] = (tr \ "users").asOpt[Seq[String]].getOrElse(Seq())
+                    val text: String = (tr \ "text").as[String]
+                    val coordinates: JsValue =
+                      (request.body \ "coordinates").asOpt[JsObject]
+                        .getOrElse(Json.obj("coordinates" -> Json.obj()))
+
+                    // Sort the users
+                    val sortedUsers: Seq[String] = users.sortWith(_ < _)
+                    // Check if the room of users is already existed
+                    val roomFuture: Future[Option[JsValue]] = findByUsers(sortedUsers)
+
+                    // Check all the users are valid
+                    val usersFuture: Future[Option[String]] = findByLogins(sortedUsers)
+
+                    authorizedFuture.zip(usersFuture).zip(roomFuture).map {
+                      case ((Some(authorized: JsValue), None), Some(users)) =>
+                        // Authorized, valid users, room existed
+                        // Create a new message
+                        val message = Json.obj(
+                          "owner" -> decoded(0),
+                          "users" -> transformUsers(decoded(0), sortedUsers),
+                          "text" -> text,
+                          "coordinates" -> coordinates,
+                          "created_at" -> System.currentTimeMillis()
+                        )
+
+                        // Insert the message into the db
+                        messagesCollection.insert(message).map {
+                          r => Created
+                        }
+                        val pu = messagePrinting(message)
+                        Logger.info(pu.toString())
+                        Status(201)(prettify(pu)).as("application/json; charset=utf-8")
+                      case ((Some(authorized), None), None) =>
+                        // Authorized, valid users, room do not exist
+                        val response = Json.obj("messages" -> Json.arr("Not found"))
+                        Logger.info(response.toString())
+                        NotFound(prettify(response)).as("application/json; charset=utf-8")
+                      case ((Some(authorized), Some(users)), _) =>
+                        // Authorized, invalid users
+                        val response = Json.obj("messages" -> Json.arr("Invalid users"))
+                        Logger.info(response.toString())
+                        BadRequest(prettify(response)).as("application/json; charset=utf-8")
+                      case ((None, _), _) =>
+                        // Not authorized
+                        val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                        Logger.info(response.toString())
+                        Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+                    }
+                  } else {
+                    val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                    Logger.info(response.toString())
+                    Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
+                  }
+              }
+            } catch {
+              case e: Exception =>
+                val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                Logger.info(response.toString())
+                Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
+            }
+          case None =>
+            // Invalid json format
+            val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
+            Logger.info(response.toString())
+            Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
+        }
+      case (jv: JsValue) =>
+        // Unauthorized bad credentials or requires authentication
+        Logger.info(jv.toString)
         Future.successful(Unauthorized(prettify(jv)).as("application/json; charset=utf-8"))
     }
   }

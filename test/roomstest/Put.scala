@@ -165,7 +165,7 @@ object Put extends PlaySpecification with JSON {
 
   "PUT /api/v0.1/user/room " +
     """{"login": true, "users": ["a", "b", "c", "d"], "privacy": 1234} """ +
-    "must be 200 Ok Set back to default" in {
+    "must be 200 Ok Invalid inputs Set back to default" in {
     running(FakeApplication()) {
       val request = FakeRequest(PUT, "/api/v0.1/user/room")
         .withHeaders(("Authorization", "Basic YToxMjM0NTY3OA=="))

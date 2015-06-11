@@ -176,9 +176,6 @@ object Put extends PlaySpecification with JSON {
     }
   }
 
-  /**
-   * Tests with confirmed
-   */
   "PUT /api/v0.1/users/b " +
     """{"confirmed": "Invalid"} """ +
     "must be 400 Bad request Confirmed is not found" in {
