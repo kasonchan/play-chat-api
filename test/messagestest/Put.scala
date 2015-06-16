@@ -108,12 +108,12 @@ object Put extends PlaySpecification with JSON {
   }
 
   "PUT /api/v0.1/user/room/messages " +
-    """{"users": ["a", "playchat"]} """ +
+    """{"users": ["a", "b", "c", "d"]} """ +
     "must be 404 Not found" in {
     running(FakeApplication()) {
       val request = FakeRequest(PUT, "/api/v0.1/user/room/messages")
         .withHeaders(("Authorization", "Basic YToxMjM0NTY3OA=="))
-        .withJsonBody(Json.parse( """{"users": ["a", "playchat"]}""".stripMargin))
+        .withJsonBody(Json.parse( """{"users": ["a", "b", "c", "d"]}""".stripMargin))
       val response = route(request)
       Thread.sleep(5000)
       response.isDefined mustEqual true
