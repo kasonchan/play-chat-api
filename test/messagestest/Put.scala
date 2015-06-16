@@ -89,6 +89,44 @@ object Put extends PlaySpecification with JSON {
   }
 
   "PUT /api/v0.1/user/room/messages " +
+    """{"users": ["a", "c"]} """ +
+    "must be 404 Not found" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/user/room/messages")
+        .withHeaders(("Authorization", "Basic YToxMjM0NTY3OA=="))
+        .withJsonBody(Json.parse( """{"users": ["a", "c"]}""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse =
+        Json.obj("messages" -> Json.arr("Not found"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 404
+    }
+  }
+
+  "PUT /api/v0.1/user/room/messages " +
+    """{"users": ["a", "playchat"]} """ +
+    "must be 404 Not found" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(PUT, "/api/v0.1/user/room/messages")
+        .withHeaders(("Authorization", "Basic YToxMjM0NTY3OA=="))
+        .withJsonBody(Json.parse( """{"users": ["a", "playchat"]}""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse =
+        Json.obj("messages" -> Json.arr("Not found"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 404
+    }
+  }
+
+  "PUT /api/v0.1/user/room/messages " +
     """{} """ +
     "must be 400 Bad request Invalid Json" in {
     running(FakeApplication()) {

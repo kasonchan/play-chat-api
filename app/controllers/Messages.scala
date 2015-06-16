@@ -550,7 +550,7 @@ object Messages extends Controller with MongoController with JSON with MessageVa
                     Logger.info(response.toString())
                     Unauthorized(prettify(response)).as("application/json; charset=utf-8")
                   }
-                case ((Some(authorized), Some(room)), Some(messages)) =>
+                case ((Some(authorized), Some(room)), None) =>
                   // Authorized, valid room, messages not found
                   val response = Json.obj("messages" -> Json.arr("Not found"))
                   Logger.info(response.toString())
