@@ -1,4 +1,4 @@
-# PlayChat API (Under construction) #
+# PlayChat API #
 
 [![Build Status](https://travis-ci.org/KasonChan/play-chat-api.svg?branch=master)](https://travis-ci.org/KasonChan/play-chat-api)
 
