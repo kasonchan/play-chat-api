@@ -12,6 +12,7 @@ import play.api.mvc._
 import play.modules.reactivemongo.MongoController
 import play.modules.reactivemongo.json.collection.JSONCollection
 import reactivemongo.api.Cursor
+import reactivemongo.core.commands.LastError
 import validations.MessageValidation
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -447,6 +448,128 @@ object Messages extends Controller with MongoController with JSON with MessageVa
               case e: Exception =>
                 val response = Json.obj("messages" -> Json.arr("Bad credentials"))
                 Logger.info(response.toString())
+                Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
+            }
+          case None =>
+            // Invalid json format
+            val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
+            Logger.info(response.toString())
+            Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
+        }
+      case (jv: JsValue) =>
+        // Unauthorized bad credentials or requires authentication
+        Logger.info(jv.toString)
+        Future.successful(Unauthorized(prettify(jv)).as("application/json; charset=utf-8"))
+    }
+  }
+
+  /**
+   * Update query
+   * Access the database and update the value
+   * @param users Seq[String]
+   * @param user String
+   * @return Future[Option[String]]
+   */
+  def queryUpdate(target: JsValue, update: JsValue): Future[Option[String]] = {
+    val cursor: Future[LastError] =
+      messagesCollection.update(target, update, multi = true)
+
+    cursor.map { l =>
+      l.errMsg match {
+        case Some(e) => Some(e)
+        case None => None
+      }
+    }
+  }
+
+  /**
+   * Update
+   * Access the database and update the field
+   * @return Action[JsValue]
+   */
+  def updateReads: Action[JsValue] = Action.async(parse.json) { request =>
+    // Get the authorization header
+    val authorization: Option[String] = request.headers.get(AUTHORIZATION)
+
+    // Check for authentication
+    getAuthorized(authorization) match {
+      case Some(decoded: Array[String]) =>
+        // Valid authentication
+
+        val transformer: Reads[JsObject] = Reads.jsPickBranch[JsArray](__ \ "users")
+
+        // Transform the json format
+        val transformedResult: Option[JsValue] =
+          request.body.transform(transformer).map { tr =>
+            // Valid json format
+            Some(tr)
+          }.getOrElse {
+            // Invalid json format
+            None
+          }
+
+        transformedResult match {
+          case Some(tr) =>
+            // Valid json format
+            try {
+              val authorizedFuture: Future[Option[JsValue]] =
+                findByLoginAndPassword(decoded(0).toString, decoded(1).toString)
+
+              val users: Seq[String] = (request.body \ "users").asOpt[Seq[String]].getOrElse(Seq())
+
+              // Sort the users
+              val sortedUsers = users.sortWith(_ < _)
+              // Check if the room of users is already existed
+              val roomFuture: Future[Option[JsValue]] = findByUsers(sortedUsers)
+
+              // Find all messages by room
+              val messagesFuture: Future[Option[JsValue]] = findByRoom(sortedUsers)
+
+              authorizedFuture.zip(roomFuture).zip(messagesFuture).map {
+                case ((Some(authorized), Some(room)), Some(messages)) =>
+                  if (users.contains(decoded(0))) {
+                    // Authorized, valid room, messages existed
+                    val target = Json.obj("users" -> sortedUsers, "reads.login" -> decoded(0))
+                    val update = Json.obj("$set" -> Json.obj("reads.$.read" -> true,
+                      "updated_at" -> System.currentTimeMillis()))
+                    val result = queryUpdate(target, update)
+
+                    result map {
+                      case Some(e) =>
+                        val response: JsValue = Json.obj("messages" -> Json.arr("Internal server error"))
+                        Logger.error(e.toString)
+                        InternalServerError(prettify(response)).as("application/json; charset=utf-8")
+                      case None =>
+                    }
+
+                    Logger.info(messages.toString)
+                    Ok(prettify(messages)).as("application/json; charset=utf-8")
+                  } else {
+                    // Not authorized
+                    val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                    Logger.info(response.toString())
+                    Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+                  }
+                case ((Some(authorized), Some(room)), Some(messages)) =>
+                  // Authorized, valid room, messages not found
+                  val response = Json.obj("messages" -> Json.arr("Not found"))
+                  Logger.info(response.toString())
+                  NotFound(prettify(response)).as("application/json; charset=utf-8")
+                case ((Some(authorized), None), _) =>
+                  // Authorized, invalid room
+                  val response = Json.obj("messages" -> Json.arr("Not found"))
+                  Logger.info(response.toString())
+                  NotFound(prettify(response)).as("application/json; charset=utf-8")
+                case ((None, _), _) =>
+                  // Not authorized
+                  val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                  Logger.info(response.toString())
+                  Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+              }
+            } catch {
+              case e: Exception =>
+                val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                Logger.info(response.toString)
                 Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
             }
           case None =>

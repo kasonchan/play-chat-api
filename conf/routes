@@ -59,5 +59,8 @@ POST        /api/v0.1/user/room/messages              controllers.Messages.getMe
 # Create a new message for the authenticated user
 POST        /api/v0.1/user/messages                   controllers.Messages.create
 
+# Update the message for the authenticated user
+PUT         /api/v0.1/user/room/messages              controllers.Messages.updateReads
+
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                             controllers.Assets.at(path="/public", file)

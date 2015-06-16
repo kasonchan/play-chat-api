@@ -351,4 +351,34 @@ object Post extends PlaySpecification with JSON {
     }
   }
 
+  "POST /api/v0.1/user/messages " +
+    """{ "owner": "a",
+      | "users": [ "a", "playchat" ],
+      | "text": "Hi, this is A." } """.stripMargin +
+    "must be 201 Created" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(POST, "/api/v0.1/user/messages")
+        .withHeaders(("Authorization", "Basic YToxMjM0NTY3OA=="))
+        .withJsonBody(Json.parse(
+        """{ "owner": "a",
+          | "users": [ "a", "playchat" ],
+          | "text": "Hi, this is A." }""".stripMargin))
+      val response = route(request)
+      Thread.sleep(5000)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "owner").as[String] mustEqual "a"
+      (json \ "users").as[JsArray] mustEqual Json.arr("a", "playchat")
+      (json \ "reads").as[JsArray] mustEqual
+        Json.arr(Json.obj("login" -> "a", "read" -> true),
+          Json.obj("login" -> "playchat", "read" -> false))
+      (json \ "text").as[String] mustEqual "Hi, this is A."
+      (json \ "coordinates").as[JsObject] mustEqual Json.obj("coordinates" -> Json.obj())
+      (json \ "created_at").as[Long] mustEqual (json \ "updated_at").as[Long]
+      result.header.status mustEqual 201
+    }
+  }
+
 }
