@@ -277,11 +277,13 @@ object Post extends PlaySpecification with JSON {
 
       val json = Json.parse(contentAsString(response.get))
       (json \ "owner").as[String] mustEqual "b"
-      (json \ "users").as[JsArray] mustEqual
+      (json \ "users").as[JsArray] mustEqual Json.arr("a", "b")
+      (json \ "reads").as[JsArray] mustEqual
         Json.arr(Json.obj("login" -> "a", "read" -> false),
           Json.obj("login" -> "b", "read" -> true))
       (json \ "text").as[String] mustEqual "Hi, this is B."
       (json \ "coordinates").as[JsObject] mustEqual Json.obj("coordinates" -> Json.obj())
+      (json \ "created_at").as[Long] mustEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 201
     }
   }
@@ -307,12 +309,14 @@ object Post extends PlaySpecification with JSON {
 
       val json = Json.parse(contentAsString(response.get))
       (json \ "owner").as[String] mustEqual "a"
-      (json \ "users").as[JsArray] mustEqual
+      (json \ "users").as[JsArray] mustEqual Json.arr("a", "b")
+      (json \ "reads").as[JsArray] mustEqual
         Json.arr(Json.obj("login" -> "a", "read" -> true),
           Json.obj("login" -> "b", "read" -> false))
       (json \ "text").as[String] mustEqual "Hi, this is A with coords."
       (json \ "coordinates").as[JsObject] mustEqual
         Json.obj("coordinates" -> Json.arr(-34.397, 150.644))
+      (json \ "created_at").as[Long] mustEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 201
     }
   }
@@ -336,11 +340,13 @@ object Post extends PlaySpecification with JSON {
 
       val json = Json.parse(contentAsString(response.get))
       (json \ "owner").as[String] mustEqual "a"
-      (json \ "users").as[JsArray] mustEqual
+      (json \ "users").as[JsArray] mustEqual Json.arr("a", "b")
+      (json \ "reads").as[JsArray] mustEqual
         Json.arr(Json.obj("login" -> "a", "read" -> true),
           Json.obj("login" -> "b", "read" -> false))
       (json \ "text").as[String] mustEqual "Hi, this is A."
       (json \ "coordinates").as[JsObject] mustEqual Json.obj("coordinates" -> Json.obj())
+      (json \ "created_at").as[Long] mustEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 201
     }
   }

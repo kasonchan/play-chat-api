@@ -54,7 +54,7 @@ PUT         /api/v0.1/user/room                       controllers.Rooms.update
 GET         /api/v0.1/users/:username/messages        controllers.Messages.find(username)
 
 # Get all messages of the specific room for the authenticated user
-#POST        /api/v0.1/users/:username/messages        controllers.Messages.getMessages(username)
+POST        /api/v0.1/user/room/messages              controllers.Messages.getMessages
 
 # Create a new message for the authenticated user
 POST        /api/v0.1/user/messages                   controllers.Messages.create

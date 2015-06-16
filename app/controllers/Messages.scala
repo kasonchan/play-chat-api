@@ -92,16 +92,20 @@ object Messages extends Controller with MongoController with JSON with MessageVa
   private def messagePrinting(message: JsValue): JsValue = {
     // Extract room's information except the password
     val owner = (message \ "owner").as[String]
-    val users = (message \ "users").as[Seq[JsObject]]
+    val users = (message \ "users").as[Seq[String]]
+    val reads = (message \ "reads").as[Seq[JsObject]]
     val coordinates = (message \ "coordinates").as[JsObject]
     val text = (message \ "text").as[String]
     val created_at = (message \ "created_at").as[Long]
+    val updated_at = (message \ "updated_at").as[Long]
 
     val response = Json.obj("owner" -> owner,
       "users" -> users,
+      "reads" -> reads,
       "coordinates" -> coordinates,
       "text" -> text,
-      "created_at" -> created_at)
+      "created_at" -> created_at,
+      "updated_at" -> updated_at)
 
     response
   }
@@ -228,7 +232,7 @@ object Messages extends Controller with MongoController with JSON with MessageVa
    * @param users Seq[String]
    * @return JsValue
    */
-  def transformUsers(owner: String, users: Seq[String]): JsValue = {
+  def transformCreateUsers(owner: String, users: Seq[String]): JsValue = {
     val usersArray: Seq[JsObject] = users.map { user =>
       if (user == owner) Json.obj("login" -> user, "read" -> true)
       else Json.obj("login" -> user, "read" -> false)
@@ -307,10 +311,12 @@ object Messages extends Controller with MongoController with JSON with MessageVa
                         // Create a new message
                         val message = Json.obj(
                           "owner" -> decoded(0),
-                          "users" -> transformUsers(decoded(0), sortedUsers),
+                          "users" -> sortedUsers,
+                          "reads" -> transformCreateUsers(decoded(0), sortedUsers),
                           "text" -> text,
                           "coordinates" -> coordinates,
-                          "created_at" -> System.currentTimeMillis()
+                          "created_at" -> System.currentTimeMillis(),
+                          "updated_at" -> System.currentTimeMillis()
                         )
 
                         // Insert the message into the db
@@ -341,6 +347,101 @@ object Messages extends Controller with MongoController with JSON with MessageVa
                     Logger.info(response.toString())
                     Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
                   }
+              }
+            } catch {
+              case e: Exception =>
+                val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                Logger.info(response.toString())
+                Future.successful(Unauthorized(prettify(response)).as("application/json; charset=utf-8"))
+            }
+          case None =>
+            // Invalid json format
+            val response: JsValue = Json.obj("messages" -> Json.arr("Invalid Json"))
+            Logger.info(response.toString())
+            Future.successful(BadRequest(prettify(response)).as("application/json; charset=utf-8"))
+        }
+      case (jv: JsValue) =>
+        // Unauthorized bad credentials or requires authentication
+        Logger.info(jv.toString)
+        Future.successful(Unauthorized(prettify(jv)).as("application/json; charset=utf-8"))
+    }
+  }
+
+  /**
+   * Find the messages by the room
+   * @param users Seq[String]
+   * @return Future[Option[JsValue]]
+   */
+  def findByRoom(users: Seq[String]): Future[Option[JsValue]] = {
+    val q = Json.obj("users" -> users)
+    val futureJsValue: Future[JsValue] = queryFind(q)
+
+    futureJsValue.map { jsValue =>
+      // Execute extractUser to extract the room from the query result
+      val js: Option[JsValue] = extractMessages(jsValue)
+
+      js match {
+        case Some(messages) => Some(messages)
+        case None => None
+      }
+    }
+  }
+
+  def getMessages: Action[JsValue] = Action.async(parse.json) { request =>
+    // Get the authorization header
+    val authorization: Option[String] = request.headers.get(AUTHORIZATION)
+
+    // Check for authentication
+    getAuthorized(authorization) match {
+      case Some(decoded: Array[String]) =>
+        // Valid authentication
+
+        val users: Option[Seq[String]] = (request.body \ "users").asOpt[Seq[String]]
+
+        users match {
+          case Some(users: Seq[String]) =>
+            // Valid json format
+            try {
+              // Check if the user is authorized
+              val authorizedFuture: Future[Option[JsValue]] =
+                findByLoginAndPassword(decoded(0).toString(), decoded(1).toString())
+
+              // Sort the users
+              val sortedUsers: Seq[String] = users.sortWith(_ < _)
+              // Check if the room of users is already existed
+              val roomFuture: Future[Option[JsValue]] = findByUsers(sortedUsers)
+
+              // Find all messages by room
+              val messagesFuture: Future[Option[JsValue]] = findByRoom(sortedUsers)
+
+              authorizedFuture.zip(roomFuture).zip(messagesFuture).map {
+                case ((Some(authorized), Some(room)), Some(messages)) =>
+                  // Authorized, room exists, messages exists
+                  if (users.contains(decoded(0))) {
+                    val response = messages
+                    Logger.info(response.toString())
+                    Ok(prettify(response)).as("application/json; charset=utf-8")
+                  } else {
+                    // Not authorized
+                    val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                    Logger.info(response.toString())
+                    Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+                  }
+                case ((Some(authorized), Some(room)), None) =>
+                  // Authorized, room exists, no messages
+                  val response = Json.obj("messages" -> Json.arr("Not found"))
+                  Logger.info(response.toString())
+                  NotFound(prettify(response)).as("application/json; charset=utf-8")
+                case ((Some(authorized), None), _) =>
+                  // Authorized, room not exists
+                  val response = Json.obj("messages" -> Json.arr("Not found"))
+                  Logger.info(response.toString())
+                  NotFound(prettify(response)).as("application/json; charset=utf-8")
+                case ((None, _), _) =>
+                  // Not authorized
+                  val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                  Logger.info(response.toString())
+                  Unauthorized(prettify(response)).as("application/json; charset=utf-8")
               }
             } catch {
               case e: Exception =>

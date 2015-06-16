@@ -28,7 +28,9 @@ case class Coordinates(latitude: Double, longitude: Double)
  * @param created_at Long
  */
 case class Message(owner: String,
-                   users: Seq[RoomUser],
+                   users: Seq[String],
+                   reads: Seq[RoomUser],
                    coordinates: Coordinates,
                    text: String,
-                   created_at: Long)
+                   created_at: Long,
+                   updated_at: Long)
