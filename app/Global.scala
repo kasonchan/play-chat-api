@@ -52,7 +52,7 @@ with JSON {
    * @return Future[Result]
    */
   override def onError(request: RequestHeader, ex: Throwable): Future[Result] = {
-    val response: JsValue = Json.obj("messages" -> Json.arr("Internal server error"))
+    val response: JsValue = Json.obj("messages" -> Json.arr(ex.getMessage.toString()))
     Logger.error(ex.getMessage.toString())
     Future.successful(InternalServerError(prettify(response)).as("application/json; charset=utf-8"))
   }
