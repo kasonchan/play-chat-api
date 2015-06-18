@@ -38,7 +38,10 @@ object Get extends PlaySpecification with JSON {
       val result = Await.result(response.get, timeout)
       val expectedResponse: JsValue =
         Json.obj("current_user_url" -> "/api/v0.1/user",
-          "user_url" -> "/api/v0.1/users/{user}")
+          "user_url" -> "/api/v0.1/users/{user}",
+          "user_rooms_url" -> "/api/v0.1/user/rooms",
+          "user_messages_url" -> "/api/v0.1/user/room/messages",
+          "documentation_url" -> "https://github.com/KasonChan/play-chat-api/wiki")
 
       contentAsString(response.get) mustEqual prettify(expectedResponse)
       result.header.status mustEqual 200
