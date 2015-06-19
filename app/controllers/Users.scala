@@ -260,10 +260,10 @@ object Users extends Controller with MongoController with JSON with UserValidati
   def findByLoginAndPassword(u: String, p: String): Future[Option[JsValue]] = {
     // Execute queryFind function to access the database to find the login and
     // password
-    val q = Json.obj({
-      "login" -> u
+    val q = Json.obj(
+      "login" -> u,
       "password" -> p
-    })
+    )
     val futureJsValue: Future[JsValue] = queryFind(q)
 
     futureJsValue.map {
@@ -359,8 +359,15 @@ object Users extends Controller with MongoController with JSON with UserValidati
 
           authorizedFuture.map {
             case Some(user) =>
-              Logger.info(user.toString)
-              Ok(prettify(user)).as("application/json; charset=utf-8")
+              val login = (user \ "login").as[String]
+              if (login == decoded(0)) {
+                Logger.info(user.toString)
+                Ok(prettify(user)).as("application/json; charset=utf-8")
+              } else {
+                val response = Json.obj("messages" -> Json.arr("Bad credentials"))
+                Logger.info(response.toString)
+                Unauthorized(prettify(response)).as("application/json; charset=utf-8")
+              }
             case None =>
               val response = Json.obj("messages" -> Json.arr("Bad credentials"))
               Logger.info(response.toString)

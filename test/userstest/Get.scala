@@ -1,7 +1,7 @@
 package userstest
 
 import json.JSON
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.Json
 import play.api.test._
 
 import scala.concurrent._
@@ -22,6 +22,34 @@ object Get extends PlaySpecification with JSON {
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
 
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "login").as[String] mustEqual "a"
+      (json \ "avatar_url").as[String] mustEqual ""
+      (json \ "type").as[String] mustEqual "user"
+      (json \ "email").as[String] mustEqual "a@a.com"
+      (json \ "location").as[String] mustEqual "a"
+      (json \ "confirmed").as[Boolean] mustEqual true
+      (json \ "created_at").as[Long] mustNotEqual (json \ "updated_at").as[Long]
+      result.header.status mustEqual 200
+    }
+  }
+
+  "GET /api/v0.1/user b must be 200 Ok" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(GET, "/api/v0.1/user")
+        .withHeaders(("Authorization", "Basic YjoxMjM0NTY3OA=="))
+      val response = route(request)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "login").as[String] mustEqual "b"
+      (json \ "avatar_url").as[String] mustEqual ""
+      (json \ "type").as[String] mustEqual "user"
+      (json \ "email").as[String] mustEqual "b@b.com"
+      (json \ "location").as[String] mustEqual ""
+      (json \ "confirmed").as[Boolean] mustEqual true
+      (json \ "created_at").as[Long] mustNotEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 200
     }
   }
@@ -88,6 +116,14 @@ object Get extends PlaySpecification with JSON {
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
 
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "login").as[String] mustEqual "playchat"
+      (json \ "avatar_url").as[String] mustEqual ""
+      (json \ "type").as[String] mustEqual "user"
+      (json \ "email").as[String] mustEqual "playchat@playchat.com"
+      (json \ "location").as[String] mustEqual ""
+      (json \ "confirmed").as[Boolean] mustEqual true
+      (json \ "created_at").as[Long] mustEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 200
     }
   }
@@ -99,6 +135,14 @@ object Get extends PlaySpecification with JSON {
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
 
+      val json = Json.parse(contentAsString(response.get))
+      (json \ "login").as[String] mustEqual "a"
+      (json \ "avatar_url").as[String] mustEqual ""
+      (json \ "type").as[String] mustEqual "user"
+      (json \ "email").as[String] mustEqual "a@a.com"
+      (json \ "location").as[String] mustEqual "a"
+      (json \ "confirmed").as[Boolean] mustEqual true
+      (json \ "created_at").as[Long] mustNotEqual (json \ "updated_at").as[Long]
       result.header.status mustEqual 200
     }
   }
