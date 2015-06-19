@@ -144,7 +144,7 @@ object Post extends PlaySpecification with JSON {
 
   "POST /api/v0.1/user/rooms " +
     """{ "users": [ "z", "a" ] } """ +
-    "must be 400 Bad request Invalid users" in {
+    "must be 401 Unauthorized Bad credentials" in {
     running(FakeApplication()) {
       val request = FakeRequest(POST, "/api/v0.1/user/rooms")
         .withJsonBody(Json.parse( """{ "users": [ "z", "a" ] }""".stripMargin))
@@ -153,10 +153,10 @@ object Post extends PlaySpecification with JSON {
       Thread.sleep(5000)
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
-      val expectedResponse = Json.obj("messages" -> Json.arr("Invalid users"))
+      val expectedResponse = Json.obj("messages" -> Json.arr("Bad credentials"))
 
       contentAsString(response.get) mustEqual prettify(expectedResponse)
-      result.header.status mustEqual 400
+      result.header.status mustEqual 401
     }
   }
 
@@ -180,7 +180,7 @@ object Post extends PlaySpecification with JSON {
 
   "POST /api/v0.1/user/rooms " +
     """{ "users": [ "b", "z", "a" ] } """ +
-    "must be 400 Bad request Invalid users" in {
+    "must be 401 Unauthorized Bad credentials" in {
     running(FakeApplication()) {
       val request = FakeRequest(POST, "/api/v0.1/user/rooms")
         .withJsonBody(Json.parse( """{ "users": [ "b", "z", "a" ] }""".stripMargin))
@@ -189,10 +189,10 @@ object Post extends PlaySpecification with JSON {
       Thread.sleep(5000)
       response.isDefined mustEqual true
       val result = Await.result(response.get, timeout)
-      val expectedResponse = Json.obj("messages" -> Json.arr("Invalid users"))
+      val expectedResponse = Json.obj("messages" -> Json.arr("Bad credentials"))
 
       contentAsString(response.get) mustEqual prettify(expectedResponse)
-      result.header.status mustEqual 400
+      result.header.status mustEqual 401
     }
   }
 
