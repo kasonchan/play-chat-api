@@ -41,6 +41,21 @@ object Get extends PlaySpecification with JSON {
     }
   }
 
+  "GET /api/v0.1/user a must be 401 Unauthorized Bad credentials" in {
+    running(FakeApplication()) {
+      val request = FakeRequest(GET, "/api/v0.1/user")
+        .withHeaders(("Authorization", ""))
+      val response = route(request)
+      response.isDefined mustEqual true
+      val result = Await.result(response.get, timeout)
+      val expectedResponse =
+        Json.obj("messages" -> Json.arr("Bad credentials"))
+
+      contentAsString(response.get) mustEqual prettify(expectedResponse)
+      result.header.status mustEqual 401
+    }
+  }
+
   "GET /api/v0.1/user a must be 401 Unauthorized Requires authentication" in {
     running(FakeApplication()) {
       val request = FakeRequest(GET, "/api/v0.1/user")

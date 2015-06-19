@@ -318,14 +318,19 @@ object Users extends Controller with MongoController with JSON with UserValidati
   def getAuthorized(authorization: Option[String]): Product with Serializable = {
     authorization match {
       case Some(a) =>
-        val encoded: Option[String] = a.split(" ").drop(1).headOption
+        try {
+          val encoded: Option[String] = a.split(" ").drop(1).headOption
 
-        encoded match {
-          case Some(e) =>
-            val decoded: Array[String] = new String(decodeBase64(e.getBytes)).split(":")
-            // Login and password
-            Some(decoded)
-          case None =>
+          encoded match {
+            case Some(e) =>
+              val decoded: Array[String] = new String(decodeBase64(e.getBytes)).split(":")
+              // Login and password
+              Some(decoded)
+            case None =>
+              Json.obj("messages" -> Json.arr("Bad credentials"))
+          }
+        } catch {
+          case e: Exception =>
             Json.obj("messages" -> Json.arr("Bad credentials"))
         }
       case None =>
