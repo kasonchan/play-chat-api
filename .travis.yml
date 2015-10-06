@@ -3,7 +3,7 @@ scala:
   - 2.11.5
 
 script:
-  -sbt clean coverage test
+  -sbt clean test
 
 after_success:
   - pip install --user codecov && codecov
