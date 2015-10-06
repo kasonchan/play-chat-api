@@ -2,3 +2,8 @@ language: scala
 scala:
    - 2.11.5
 script: sbt test
+
+before_install:
+  - pip install --user codecov
+after_success:
+  - codecov
