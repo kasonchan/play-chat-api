@@ -3,8 +3,8 @@ language: scala
 scala:
   - 2.11.5
 
-script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test benchmarks/it:test petstore/it:test scalastyle && sbt ++$TRAVIS_SCALA_VERSION coverageAggregate
+script:
+  - sbt clean coverage test
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
-
+  - pip install --user codecov && codecov

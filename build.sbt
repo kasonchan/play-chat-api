@@ -9,6 +9,7 @@ scalaVersion := "2.11.5"
 scalacOptions ++= Seq("-feature")
 
 libraryDependencies ++= Seq(filters,
-  "org.reactivemongo" %% "play2-reactivemongo" % "0.10.5.0.akka23")
+  "org.reactivemongo" %% "play2-reactivemongo" % "0.10.5.0.akka23",
+  "org.scoverage" % "sbt-scoverage" % "1.3.3")
 
 unmanagedResourceDirectories in Test <+= baseDirectory(_ / "target/web/public/test")
